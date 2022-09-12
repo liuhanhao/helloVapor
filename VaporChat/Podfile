@@ -4,15 +4,30 @@ platform :ios, '10.0'
 target 'VaporChat' do
 use_frameworks!
 
-pod 'Starscream', '~> 4.0.0'
-pod 'SnapKit'
-pod 'SwiftyJSON'
-pod 'Kingfisher'
+  pod 'Starscream', '~> 4.0.0' #代替 SocketRocket
+  pod 'SnapKit' #代替 Masonry
+  pod 'SwiftyJSON' #json数据 自动对可选择进行拆包
+  pod 'Kingfisher' #代替 SDWebImage
 
-#pod 'TSVoiceConverter'
-pod 'Alamofire'
-pod 'ReactiveCocoa'
-#pod 'YYKit'
-pod 'Timepiece'
+  #pod 'YYKit'
+  #pod 'TSVoiceConverter'
+  pod 'Alamofire' #代替 AFNetworking
+  pod 'ReactiveCocoa' #RAC Swift版本
+  pod 'Timepiece' #时间管理器
+  pod 'NVActivityIndicatorView' #loading炫酷动画
+  
+#  pod 'SQLite.swift', '~> 0.11.0' #代替 FMDB
+#  pod 'JRefresh' #代替 MJRefresh
+#
+#  pod 'Valet' #管理keychain钥匙串
+#  pod 'PermissionScope' #管理系统的权限
+#  pod 'PromiseKit' #异步变同步写法
+#  pod 'CryptoSwift' #加密
+#  pod 'Hero' #自定义试图控制器过渡动画
 
+#   DZNEmptyDataSet
+#FileKit
+
+#GDPerformanceView在状态栏上方显示 FPS，CPU 使用情况，app 和 iOS 版本，并通过 delegate 报告 FPS 和 CPU 使用情况。
+#Spring 做动画更简单、可链和声明
 end
