@@ -13,7 +13,7 @@ public func configure(_ app: Application) throws {
 //    app.routes.defaultMaxBodySize = "500kb"
     
     // 配置sqlite
-    app.databases.use(.sqlite(.file("/Users/taylor/Desktop/helloVapor/chatMessage.db")), as: .sqlite)
+    app.databases.use(.sqlite(.file(app.directory.workingDirectory + "chatMessage.db")), as: .sqlite)
     
     // 用户表
     app.migrations.add(User.Migration())
@@ -31,6 +31,6 @@ public func configure(_ app: Application) throws {
 //    // or
 //    try await app.autoMigrate()
 
-
+    
     
 }

@@ -68,7 +68,7 @@ func routes(_ app: Application) throws {
                 return request.eventLoop.makeSucceededVoidFuture()
             case .end: // 流读取完成  将缓冲区数据写入文件
                 resultsPromise.succeed("success")
-                return request.fileio.writeFile(fileData, at: "/Users/taylor/Desktop/helloVapor/uploadFile/666.jpg")
+                return request.fileio.writeFile(fileData, at: app.directory.workingDirectory + "uploadFile/666.jpg")
             case .error(let error):
                 resultsPromise.fail(error)
                 return request.eventLoop.makeFailedFuture(error)
@@ -91,7 +91,7 @@ func routes(_ app: Application) throws {
 
         // 同步
         // streamFile 方法将文件流转换为 Response。 此方法将自动设置适当的响应头，例如 ETag 和 Content-Type。
-        let result = request.fileio.streamFile(at: "/Users/taylor/Desktop/helloVapor/uploadFile/666.jpg")
+        let result = request.fileio.streamFile(at: app.directory.workingDirectory + "uploadFile/666.jpg")
         print(result)
 
         return result
