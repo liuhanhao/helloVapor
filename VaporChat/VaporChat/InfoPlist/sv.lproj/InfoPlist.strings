@@ -1,0 +1,12 @@
+"NSLocationUsageDescription" = "Behörigheter för placeringstjänster krävs så att användare kan välja en plats när de delar en video."; 
+"NSBluetoothPeripheralUsageDescription" = "App kan använda Bluetooth för att lägga till enheter normalt efter att den är påslagen"; 
+"CFBundleDisplayName" = "EseeCloud"; 
+"NSLocationWhenInUseUsageDescription" = "Behörigheter för placeringstjänster krävs så att användare kan välja en plats när de delar en video."; 
+"NSUserTrackingUsageDescription" = "Denna identifierare kommer att användas för att leverera personligt innehåll till dig"; 
+"NSMicrophoneUsageDescription" = "Appen kan använda röstintercomfunktionen först efter att mikrofontillståndet har aktiverats."; 
+"NSBluetoothAlwaysUsageDescription" = "App kan använda Bluetooth för att lägga till enheter normalt efter att den är påslagen"; 
+"UILaunchStoryboardName" = "LaunchImage_Cn"; 
+"NSCameraUsageDescription" = "Efter öppningen kan appen använda sopfunktionen för att lägga till delade enheter."; 
+"NSPhotoLibraryUsageDescription" = "Efter öppningen kan appen få tillgång till dina foton för foto-och videolagring."; 
+"NSPhotoLibraryAddUsageDescription" = "Behöver komma åt ditt fotoalbum"; 
+"NSLocalNetworkUsageDescription" = "App måste få LAN -behörighet för att få enhetens LAN -status och konfigurera nätverk för enheten"; 

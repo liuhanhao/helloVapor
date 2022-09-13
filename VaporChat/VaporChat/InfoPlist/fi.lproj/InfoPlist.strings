@@ -1,0 +1,12 @@
+"NSLocationUsageDescription" = "Sijaintipalvelun luvat vaaditaan, jotta käyttäjät voivat valita sijainnin videota jaettaessa."; 
+"NSBluetoothPeripheralUsageDescription" = "Kun sovellus on avattu,laite voi lisätä laitteita Bluetoothin avulla."; 
+"CFBundleDisplayName" = "EseeCloud"; 
+"NSLocationWhenInUseUsageDescription" = "Sijaintipalvelun luvat vaaditaan, jotta käyttäjät voivat valita sijainnin videota jaettaessa."; 
+"NSUserTrackingUsageDescription" = "Tätä tunnistetta käytetään henkilökohtaisen sisällön toimittamiseen sinulle"; 
+"NSMicrophoneUsageDescription" = "Sovellus voi käyttää äänipuhelintoimintoa vasta, kun mikrofonin lupa on kytketty päälle."; 
+"NSBluetoothAlwaysUsageDescription" = "Kun sovellus on avattu,laite voi lisätä laitteita Bluetoothin avulla."; 
+"UILaunchStoryboardName" = "LaunchImage_Cn"; 
+"NSCameraUsageDescription" = "Avattuaan sovellus voi käyttää sweep-toimintoa jakamaan jaettuja laitteita."; 
+"NSPhotoLibraryUsageDescription" = "Avattuaan sovellus voi käyttää valokuvia valokuvien ja videoiden tallennukseen."; 
+"NSPhotoLibraryAddUsageDescription" = "Sinun täytyy käyttää valokuva-albumiasi"; 
+"NSLocalNetworkUsageDescription" = "Sovelluksen on hankittava lähiverkon käyttöoikeus saadakseen laitteen lähiverkon tilan ja konfiguroida laitteen verkko"; 

@@ -1,0 +1,12 @@
+"NSLocationUsageDescription" = "사용자가 비디오를 공유 할 때 위치를 선택할 수 있도록 위치 서비스 권한이 필요합니다."; 
+"NSBluetoothPeripheralUsageDescription" = "앱을 사용하면 블루투스를 사용하여 기기를 정상적으로 추가 할 수 있습니다."; 
+"CFBundleDisplayName" = "EseeCloud"; 
+"NSLocationWhenInUseUsageDescription" = "사용자가 비디오를 공유 할 때 위치를 선택할 수 있도록 위치 서비스 권한이 필요합니다."; 
+"NSUserTrackingUsageDescription" = "이 식별자는 개인화 된 콘텐츠를 제공하는 데 사용됩니다."; 
+"NSMicrophoneUsageDescription" = "앱은 마이크 권한이 설정된 후에 만 대화 기능을 사용할 수 있습니다."; 
+"NSBluetoothAlwaysUsageDescription" = "앱을 사용하면 블루투스를 사용하여 기기를 정상적으로 추가 할 수 있습니다."; 
+"UILaunchStoryboardName" = "LaunchImage_Cn"; 
+"NSCameraUsageDescription" = "서비스 등록 후에는 앱을 통해서 공유된 기기를 추가 할 수 있습니다."; 
+"NSPhotoLibraryUsageDescription" = "서비스 등록 후에는 앱에서 스토리지 접속을 통해서 사진 및 동영상을 볼 수 있습니다."; 
+"NSPhotoLibraryAddUsageDescription" = "사진 앨범에 접속해야합니다."; 
+"NSLocalNetworkUsageDescription" = "앱은 장치의 LAN 상태를 가져오고 장치의 네트워크를 구성하려면 LAN 권한을 얻어야 합니다."; 

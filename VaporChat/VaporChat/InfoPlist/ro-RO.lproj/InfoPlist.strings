@@ -1,0 +1,12 @@
+"CFBundleDisplayName" = "EseeCloud";
+"NSCameraUsageDescription" = "După deschidere,aplicația poate utiliza funcția de măturat pentru a adăuga dispozitivele partajate.";
+"NSMicrophoneUsageDescription" = "Aplicația poate utiliza funcția de interfon vocal în mod normal după ce este activată";
+"NSPhotoLibraryAddUsageDescription" = "Trebuie să accesați albumul dvs. foto";
+"NSPhotoLibraryUsageDescription" = "După deschidere,aplicația poate accesa fotografiile dvs. pentru stocarea fotografiilor și a videoclipurilor.";
+"NSBluetoothPeripheralUsageDescription" = "Aplicația poate utiliza Bluetooth pentru a adăuga dispozitive în mod normal după ce este pornit";
+"NSBluetoothAlwaysUsageDescription" = "开启后App才可以正常使用蓝牙添加设备";
+"NSLocationWhenInUseUsageDescription" = "如果不允许，APP将无法正常添加设备";
+"NSLocationUsageDescription" = "如果不允许，APP将无法正常添加设备";;
+"UILaunchStoryboardName" = "LaunchImage_Cn";
+"NSUserTrackingUsageDescription" = "";
+"NSLocalNetworkUsageDescription" = "LocalNetwork";

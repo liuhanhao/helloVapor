@@ -1,0 +1,12 @@
+"NSLocationUsageDescription" = "Konum hizmeti izinleri, kullanıcıların video paylaşırken bir konum seçebilmeleri için gereklidir."; 
+"NSBluetoothPeripheralUsageDescription" = "Uygulama,cihazları açtıktan sonra normal şekilde cihaz eklemek için Bluetooth kullanabilir"; 
+"CFBundleDisplayName" = "EseeCloud"; 
+"NSLocationWhenInUseUsageDescription" = "Konum hizmeti izinleri, kullanıcıların video paylaşırken bir konum seçebilmeleri için gereklidir."; 
+"NSUserTrackingUsageDescription" = "Bu tanımlayıcı size kişiselleştirilmiş içerik sunmak için kullanılacaktır"; 
+"NSMicrophoneUsageDescription" = "Uygulama sesli interkom işlevini yalnızca mikrofon izni açıldıktan sonra kullanabilir."; 
+"NSBluetoothAlwaysUsageDescription" = "Uygulama,cihazları açtıktan sonra normal şekilde cihaz eklemek için Bluetooth kullanabilir"; 
+"UILaunchStoryboardName" = "LaunchImage_Cn"; 
+"NSCameraUsageDescription" = "Açıldıktan sonra,uygulama paylaşılan cihazlar eklemek için tarama işlevini kullanabilir."; 
+"NSPhotoLibraryUsageDescription" = "Açtıktan sonra,uygulama fotoğraf ve video saklama için fotoğraflarınıza erişebilir."; 
+"NSPhotoLibraryAddUsageDescription" = "Fotoğraf albümüne erişmen gerekiyor"; 
+"NSLocalNetworkUsageDescription" = "Uygulamanın, cihazın LAN durumunu almak ve ağı cihaz için yapılandırmak için LAN izni alması gerekir."; 

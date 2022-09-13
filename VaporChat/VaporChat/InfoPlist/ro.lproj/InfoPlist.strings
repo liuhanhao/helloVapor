@@ -1,0 +1,12 @@
+"NSLocationUsageDescription" = "Sunt necesare permisiuni de servicii de locație, astfel încât utilizatorii să poată alege o locație atunci când partajează un videoclip."; 
+"NSBluetoothPeripheralUsageDescription" = "Aplicația poate utiliza Bluetooth pentru a adăuga dispozitive în mod normal după ce este pornit"; 
+"CFBundleDisplayName" = "EseeCloud"; 
+"NSLocationWhenInUseUsageDescription" = "Sunt necesare permisiuni de servicii de locație, astfel încât utilizatorii să poată alege o locație atunci când partajează un videoclip."; 
+"NSUserTrackingUsageDescription" = "Acest identificator va fi utilizat pentru a vă oferi conținut personalizat"; 
+"NSMicrophoneUsageDescription" = "Aplicația poate utiliza funcția de interfon vocal numai după ce permisiunea microfonului este pornită."; 
+"NSBluetoothAlwaysUsageDescription" = "Aplicația poate utiliza Bluetooth pentru a adăuga dispozitive în mod normal după ce este pornit"; 
+"UILaunchStoryboardName" = "LaunchImage_Cn"; 
+"NSCameraUsageDescription" = "După deschidere,aplicația poate utiliza funcția de măturat pentru a adăuga dispozitivele partajate."; 
+"NSPhotoLibraryUsageDescription" = "După deschidere,aplicația poate accesa fotografiile dvs. pentru stocarea fotografiilor și a videoclipurilor."; 
+"NSPhotoLibraryAddUsageDescription" = "Trebuie să accesați albumul dvs. foto"; 
+"NSLocalNetworkUsageDescription" = "Aplicația trebuie să obțină permisiunea LAN pentru a obține starea LAN a dispozitivului și pentru a configura rețeaua pentru dispozitiv"; 

@@ -1,0 +1,12 @@
+"NSLocationUsageDescription" = "Sono necessarie le autorizzazioni del servizio di localizzazione in modo che gli utenti possano scegliere una posizione quando condividono un video."; 
+"NSBluetoothPeripheralUsageDescription" = "L\'app può utilizzare il bluetooth per aggiungere dispositivi dopo l\'accensione"; 
+"CFBundleDisplayName" = "EseeCloud"; 
+"NSLocationWhenInUseUsageDescription" = "Sono necessarie le autorizzazioni del servizio di localizzazione in modo che gli utenti possano scegliere una posizione quando condividono un video."; 
+"NSUserTrackingUsageDescription" = "Questo identificatore verrà utilizzato per fornirti contenuti personalizzati"; 
+"NSMicrophoneUsageDescription" = "L\'app può utilizzare la funzione di interfono vocale solo dopo aver attivato l\'autorizzazione del microfono."; 
+"NSBluetoothAlwaysUsageDescription" = "L\'app può utilizzare il bluetooth per aggiungere dispositivi dopo l\'accensione"; 
+"UILaunchStoryboardName" = "LaunchImage_Cn"; 
+"NSCameraUsageDescription" = "Dopo l\'apertura,l\'app può utilizzare la funzione di sweep per aggiungere dispositivi condivisi."; 
+"NSPhotoLibraryUsageDescription" = "Dopo l\'apertura,l\'app può accedere alle tue foto per l\'archiviazione di foto e video."; 
+"NSPhotoLibraryAddUsageDescription" = "Hai bisogno di accedere al tuo album fotografico"; 
+"NSLocalNetworkUsageDescription" = "L\'app deve ottenere l\'autorizzazione LAN per ottenere lo stato LAN del dispositivo e configurare la rete per il dispositivo"; 

@@ -1,0 +1,12 @@
+"NSLocationUsageDescription" = "ユーザーがビデオを共有するときに場所を選択できるように、位置情報サービスのアクセス許可が必要です。"; 
+"NSBluetoothPeripheralUsageDescription" = "オンになった後、アプリは通常デバイスを追加するためにBluetoothを使用することができます。"; 
+"CFBundleDisplayName" = "EseeCloud"; 
+"NSLocationWhenInUseUsageDescription" = "ユーザーがビデオを共有するときに場所を選択できるように、位置情報サービスのアクセス許可が必要です。"; 
+"NSUserTrackingUsageDescription" = "この識別子は、パーソナライズされたコンテンツを配信するために使用されます"; 
+"NSMicrophoneUsageDescription" = "アプリは、マイクの許可がオンになった後にのみ音声インターコム機能を使用できます。"; 
+"NSBluetoothAlwaysUsageDescription" = "アプリケーションは、Bluetoothをオンにした後にBluetoothを使用して通常のデバイスを追加できます"; 
+"UILaunchStoryboardName" = "LaunchImage_Cn"; 
+"NSCameraUsageDescription" = "開いた後、アプリは共有デバイスを追加するためにスキャン機能を使用することができます。"; 
+"NSPhotoLibraryUsageDescription" = "アプリより写真やビデオをアルバム内へ保存します。"; 
+"NSPhotoLibraryAddUsageDescription" = "携帯電話のアルバムへアクセスする必要があります。"; 
+"NSLocalNetworkUsageDescription" = "アプリは、デバイスのLANステータスを取得し、デバイスのネットワークを構成するためにLAN権限を取得する必要があります"; 

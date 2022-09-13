@@ -1,0 +1,12 @@
+"NSLocationUsageDescription" = "Locatieservicemachtigingen zijn vereist zodat gebruikers een locatie kunnen kiezen bij het delen van een video."; 
+"NSBluetoothPeripheralUsageDescription" = "App kan bluetooth gebruiken om apparaten toevoegen nadat deze is ingeschakeld"; 
+"CFBundleDisplayName" = "EseeCloud"; 
+"NSLocationWhenInUseUsageDescription" = "Locatieservicemachtigingen zijn vereist zodat gebruikers een locatie kunnen kiezen bij het delen van een video."; 
+"NSUserTrackingUsageDescription" = "Deze identificatie wordt gebruikt om u gepersonaliseerde inhoud te bezorgen"; 
+"NSMicrophoneUsageDescription" = "De app kan de spraakintercomfunctie alleen gebruiken nadat de microfoonmachtiging is ingeschakeld."; 
+"NSBluetoothAlwaysUsageDescription" = "App kan bluetooth gebruiken om apparaten toevoegen nadat deze is ingeschakeld"; 
+"UILaunchStoryboardName" = "LaunchImage_Cn"; 
+"NSCameraUsageDescription" = "App kan normaliter worden gebruikt om na het openen te scannen"; 
+"NSPhotoLibraryUsageDescription" = "Nadat u EseeCloud heeft ingeschakeld,heeft u toegang tot uw foto\'s"; 
+"NSPhotoLibraryAddUsageDescription" = "Noodzaak om toegang te krijgen tot uw fotoalbum"; 
+"NSLocalNetworkUsageDescription" = "App moet de LAN-toestemming verkrijgen om de LAN-status van het apparaat te verkrijgen en het netwerk voor het apparaat te configureren"; 

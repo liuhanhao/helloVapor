@@ -1,0 +1,12 @@
+"NSLocationUsageDescription" = "Der aktuelle WLAN-Name des Telefons muss über die Standortberechtigung abgerufen werden, um sicherzustellen, dass das Gerät erfolgreich hinzugefügt wird."; 
+"NSBluetoothPeripheralUsageDescription" = "Die App kann Bluetooth verwenden, um Geräte hinzuzufügen"; 
+"CFBundleDisplayName" = "EseeCloud"; 
+"NSLocationWhenInUseUsageDescription" = "Der aktuelle WLAN-Name des Telefons muss über die Standortberechtigung abgerufen werden, um sicherzustellen, dass das Gerät erfolgreich hinzugefügt wird."; 
+"NSUserTrackingUsageDescription" = "Diese Kennung wird verwendet, um Ihnen personalisierte Inhalte bereitzustellen"; 
+"NSMicrophoneUsageDescription" = "Die App kann die Wechselsprechfunktion verwenden, nachdem sie eingeschaltet wurde"; 
+"NSBluetoothAlwaysUsageDescription" = "Die App kann Bluetooth verwenden, um Geräte nach dem Einschalten hinzuzufügen"; 
+"UILaunchStoryboardName" = "LaunchImage_Cn"; 
+"NSCameraUsageDescription" = "Nach dem Öffnen kann die App die Scan-Funktion verwenden, um geteilte Geräte hinzuzufügen."; 
+"NSPhotoLibraryUsageDescription" = "Nach dem Öffnen kann die App auf Ihre Fotos für Foto- und Videospeicher zugreifen."; 
+"NSPhotoLibraryAddUsageDescription" = "Benötigt Zugriff auf Fotos"; 
+"NSLocalNetworkUsageDescription" = "Die App benötigt die LAN-Berechtigung, um den LAN-Status des Geräts abzurufen und das Netzwerk für das Gerät zu konfigurieren"; 

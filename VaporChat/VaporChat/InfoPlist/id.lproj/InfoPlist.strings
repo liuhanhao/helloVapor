@@ -1,0 +1,12 @@
+"NSLocationUsageDescription" = "Izin layanan lokasi diperlukan agar pengguna dapat memilih lokasi saat berbagi video."; 
+"NSBluetoothPeripheralUsageDescription" = "APP dapat menambah perangkat melalu Bluetooth setelah di nyalakan"; 
+"CFBundleDisplayName" = "EseeCloud"; 
+"NSLocationWhenInUseUsageDescription" = "Izin layanan lokasi diperlukan agar pengguna dapat memilih lokasi saat berbagi video."; 
+"NSUserTrackingUsageDescription" = "Pengenal ini akan digunakan untuk mengirimkan konten yang dipersonalisasi kepada Anda"; 
+"NSMicrophoneUsageDescription" = "Aplikasi ini dapat menggunakan fungsi interkom suara hanya setelah izin mikrofon dihidupkan."; 
+"NSBluetoothAlwaysUsageDescription" = "APP dapat menambah perangkat melalu Bluetooth setelah di nyalakan"; 
+"UILaunchStoryboardName" = "LaunchImage_Cn"; 
+"NSCameraUsageDescription" = "setelah buka app dapat menganti fungsi untuk tambah penbagian perangkat"; 
+"NSPhotoLibraryUsageDescription" = "setelah buka,app dapat akses foto kamu dan penyimpanan foto dan video"; 
+"NSPhotoLibraryAddUsageDescription" = "butuh untuk akses ke Foto album"; 
+"NSLocalNetworkUsageDescription" = "Aplikasi perlu mendapatkan izin LAN untuk mendapatkan status LAN perangkat dan mengonfigurasi jaringan untuk perangkat"; 

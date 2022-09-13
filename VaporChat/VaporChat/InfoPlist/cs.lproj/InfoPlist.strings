@@ -1,0 +1,12 @@
+"NSLocationUsageDescription" = "Oprávnění k určování polohy jsou požadována, aby si uživatelé mohli při sdílení videa vybrat místo."; 
+"NSBluetoothPeripheralUsageDescription" = "Po otevření aplikace může pomocí aplikace Bluetooth přidat zařízení."; 
+"CFBundleDisplayName" = "EseeCloud"; 
+"NSLocationWhenInUseUsageDescription" = "Oprávnění k určování polohy jsou požadována, aby si uživatelé mohli při sdílení videa vybrat místo."; 
+"NSUserTrackingUsageDescription" = "Tento identifikátor bude použit k doručení personalizovaného obsahu"; 
+"NSMicrophoneUsageDescription" = "Aplikace může používat funkci hlasového interkomu až po zapnutí povolení mikrofonu."; 
+"NSBluetoothAlwaysUsageDescription" = "Po otevření aplikace může pomocí aplikace Bluetooth přidat zařízení."; 
+"UILaunchStoryboardName" = "LaunchImage_Cn"; 
+"NSCameraUsageDescription" = "Po otevření aplikace může používat funkci zametání pro přidání sdílených zařízení."; 
+"NSPhotoLibraryUsageDescription" = "Po otevření aplikace může aplikace přistupovat k vašim fotkám pro úložiště fotografií a videa."; 
+"NSPhotoLibraryAddUsageDescription" = "Potřebujete přístup k vašemu fotoalbu"; 
+"NSLocalNetworkUsageDescription" = "Aplikace potřebuje získat oprávnění LAN, aby získala stav LAN zařízení a nakonfigurovala síť pro zařízení"; 

@@ -1,0 +1,12 @@
+"NSLocationUsageDescription" = "Cần xin quyền dịch vụ vị trí để tạo điều kiện cho người dùng lựa chọn vị trí khi chia sẻ video."; 
+"NSBluetoothPeripheralUsageDescription" = "Ứng dụng có thể sử dụng Bluetooth để thêm thiết bị bình thường sau khi mở"; 
+"CFBundleDisplayName" = "EseeCloud"; 
+"NSLocationWhenInUseUsageDescription" = "Cần xin quyền dịch vụ vị trí để tạo điều kiện cho người dùng lựa chọn vị trí khi chia sẻ video."; 
+"NSUserTrackingUsageDescription" = "Mã nhận dạng này sẽ được sử dụng để cung cấp nội dung được cá nhân hóa cho bạn"; 
+"NSMicrophoneUsageDescription" = "Ứng dụng có thể sử dụng chức năng liên lạc thoại bình thường sau khi bật quyền đối với micrô"; 
+"NSBluetoothAlwaysUsageDescription" = "Ứng dụng có thể sử dụng Bluetooth để thêm thiết bị bình thường sau khi mở"; 
+"UILaunchStoryboardName" = "LaunchImage_Cn"; 
+"NSCameraUsageDescription" = "Sau khi mở Ứng dụng, bạn có thể sử dụng chức năng quét để thêm các thiết bị dùng chung"; 
+"NSPhotoLibraryUsageDescription" = "Chỉ sau khi mở Ứng dụng, bạn mới có thể truy cập ảnh của mình để lưu trữ ảnh và video"; 
+"NSPhotoLibraryAddUsageDescription" = "Cần truy cập anbom của bạn"; 
+"NSLocalNetworkUsageDescription" = "Ứng dụng cần có quyền mạng LAN để có được trạng thái mạng LAN của thiết bị và định cấu hình mạng cho thiết bị"; 

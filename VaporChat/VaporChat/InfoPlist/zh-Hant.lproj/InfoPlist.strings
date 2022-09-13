@@ -1,0 +1,12 @@
+"NSLocationUsageDescription" = "需要獲取定位服務權限，方便用戶在分享視頻時選取位置。"; 
+"NSBluetoothPeripheralUsageDescription" = "開啟後App才可以正常使用藍牙添加設備"; 
+"CFBundleDisplayName" = "易視雲"; 
+"NSLocationWhenInUseUsageDescription" = "需要獲取定位服務權限，方便用戶在分享視頻時選取位置。"; 
+"NSUserTrackingUsageDescription" = "該標識符將用於向您投放個性化內容"; 
+"NSMicrophoneUsageDescription" = "麥克風權限開啟後App才可以正常使用語音對講功能"; 
+"NSBluetoothAlwaysUsageDescription" = "開啟後App才可以正常使用藍牙添加設備"; 
+"UILaunchStoryboardName" = "LaunchImage_Cn"; 
+"NSCameraUsageDescription" = "開啟後App才可以正常使用掃一掃功能添加分享的設備"; 
+"NSPhotoLibraryUsageDescription" = "開啟後App才可以訪問你的照片進行照片和錄像的存儲"; 
+"NSPhotoLibraryAddUsageDescription" = "需要訪問你的相冊"; 
+"NSLocalNetworkUsageDescription" = "APP需要獲取局域網權限,以獲取設備的局域網狀態給設備配置網絡"; 

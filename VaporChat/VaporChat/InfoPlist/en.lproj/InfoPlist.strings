@@ -1,0 +1,12 @@
+"NSLocationUsageDescription" = "Location service permissions are required so that users can choose a location when sharing a video."; 
+"NSBluetoothPeripheralUsageDescription" = "App can use Bluetooth to add devices normally after it is turned on"; 
+"CFBundleDisplayName" = "EseeCloud"; 
+"NSLocationWhenInUseUsageDescription" = "Location service permissions are required so that users can choose a location when sharing a video."; 
+"NSUserTrackingUsageDescription" = "This identifier will be used to deliver personalized content to you"; 
+"NSMicrophoneUsageDescription" = "The app can use the voice intercom function only after the microphone permission is turned on."; 
+"NSBluetoothAlwaysUsageDescription" = "App can use Bluetooth to add devices normally after it is turned on"; 
+"UILaunchStoryboardName" = "LaunchImage_Cn"; 
+"NSCameraUsageDescription" = "After opening,the app can use the scan function to add shared devices."; 
+"NSPhotoLibraryUsageDescription" = "After opening,the app can access your photos for photo and video storage."; 
+"NSPhotoLibraryAddUsageDescription" = "Need access to your photo album"; 
+"NSLocalNetworkUsageDescription" = "App needs to obtain the LAN permission to obtain the LAN status of the device and configure the network for the device"; 
