@@ -23,7 +23,7 @@ use_frameworks!
   pod "BSImagePicker"
   pod 'XLActionController'
   pod 'SQLite.swift' #代替 FMDB
-  pod 'TSVoiceConverter'
+  pod 'TSVoiceConverter' #音频格式转换
   
 #  pod 'Valet' #管理keychain钥匙串
 #  pod 'PromiseKit' #异步变同步写法
@@ -36,7 +36,6 @@ use_frameworks!
 #Spring 做动画更简单、可链和声明
 
 end
-
 
 post_install do |installer|
     installer.pods_project.targets.each do |target|
