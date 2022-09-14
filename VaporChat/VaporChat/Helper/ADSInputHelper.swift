@@ -194,11 +194,47 @@ class ADSInputHelper: NSObject {
         }
         
         let helper = ADSInputHelper.sharedHelper
-        let image:UIImage? = helper.otherCache[name]
+        var image:UIImage? = helper.otherCache[name]
         if image == nil {
-            let path = helper.
+            let path = helper.otherPath + "/" + "name"
+            image = UIImage.init(contentsOfFile: path)
         }
         
+        if image != nil {
+            helper.otherCache[name] = image
+        }
+        
+        return image
+    }
+    
+    //图片
+    func emoticonImageNamed(name: String) -> UIImage? {
+        if name.ts_length == 0 {
+            return nil
+        }
+        
+        var fileName = name
+        let url:URL = URL.init(fileURLWithPath: name)
+        if url.pathExtension.ts_length == 0 {
+            fileName = fileName + ".png"
+        }
+        
+        let helper = ADSInputHelper.sharedHelper
+        var image:UIImage? = helper.emoticonCache[name]
+        if image == nil {
+            let path = helper.lxhPath + "/" + "name"
+            image = UIImage.init(contentsOfFile: path)
+        }
+        if image == nil {
+            let path = helper.defaultPath + "/" + "name"
+            image = UIImage.init(contentsOfFile: path)
+        }
+        
+        if image != nil {
+            helper.emoticonCache[name] = image
+        }
+        
+        return image
     }
     
 }
