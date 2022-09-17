@@ -80,7 +80,7 @@ public extension UINavigationItem {
             buttonWidth = size.width
             button.setTitle(aText, for: UIControl.State())
         }
-        button.imageView!.contentMode = .scaleAspectFit;
+        button.imageView!.contentMode = .scaleAspectFit
         button.frame = CGRect(x: 0, y: 0, width: buttonWidth, height: 30)
         return button
     }

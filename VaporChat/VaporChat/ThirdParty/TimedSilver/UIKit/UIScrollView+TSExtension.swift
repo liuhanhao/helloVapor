@@ -56,7 +56,7 @@ extension UIScrollView {
     
     fileprivate func ts_safeValueForKey(_ key: String) -> AnyObject{
         let instanceVariable: Ivar = class_getInstanceVariable(type(of: self), key.cString(using: String.Encoding.utf8)!)!
-        return object_getIvar(self, instanceVariable) as AnyObject;
+        return object_getIvar(self, instanceVariable) as AnyObject
     }
     
     
@@ -67,7 +67,7 @@ extension UIScrollView {
      */
     public func ts_scrollToTopAnimated(_ animated: Bool) {
         if !self.ts_isAtTop {
-            let bottomOffset = CGPoint.zero;
+            let bottomOffset = CGPoint.zero
             self.setContentOffset(bottomOffset, animated: animated)
         }
     }

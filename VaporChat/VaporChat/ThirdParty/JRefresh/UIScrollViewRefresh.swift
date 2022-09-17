@@ -11,7 +11,7 @@ import UIKit
 private var headerKey: UInt8 = 0
 private var footerKey: UInt8 = 0
 public extension UIScrollView {
-    public var header: JRefreshHeader? {
+    var header: JRefreshHeader? {
         set(newHeader) {
             if header != newHeader {
                 //删除旧的，添加新的
@@ -25,7 +25,7 @@ public extension UIScrollView {
             return objc_getAssociatedObject(self, &headerKey) as? JRefreshHeader
         }
     }
-    public var footer: JRefreshFooter? {
+    var footer: JRefreshFooter? {
         set(newFooter) {
             if footer != newFooter {
                 //删除旧的，添加新的

@@ -9,28 +9,28 @@
 import Foundation
 import UIKit
 
-typealias XYTimerBlock = (Timer) -> ()
+typealias ADSTimerBlock = (Timer) -> ()
 
 extension Timer {
     
     static func scheduledTimerWithTime(timer:Timer?,interval:TimeInterval,target:AnyObject,selector:Selector,userInfo:Dictionary<String, Any>,repeats:Bool) -> Timer {
         
-        return self.initWithXYWeakTimer(timer: timer, interval: interval, target: target, selector: selector, timerBlock: {(timer) in }, userInfo: userInfo, repeats: repeats)
+        return self.initWithWeakTimer(timer: timer, interval: interval, target: target, selector: selector, timerBlock: {(timer) in }, userInfo: userInfo, repeats: repeats)
         
     }
     
-    static func scheduledTimerWithTime(timer:Timer?,interval:TimeInterval,target:AnyObject,timerBlock:@escaping XYTimerBlock,userInfo:Dictionary<String, Any>?,repeats:Bool) -> Timer {
+    static func scheduledTimerWithTime(timer:Timer?,interval:TimeInterval,target:AnyObject,timerBlock:@escaping ADSTimerBlock,userInfo:Dictionary<String, Any>?,repeats:Bool) -> Timer {
         
-        return self.initWithXYWeakTimer(timer: timer, interval: interval, target: target, selector: nil, timerBlock: timerBlock, userInfo: userInfo, repeats: repeats)
+        return self.initWithWeakTimer(timer: timer, interval: interval, target: target, selector: nil, timerBlock: timerBlock, userInfo: userInfo, repeats: repeats)
         
     }
     
     private
-    static func initWithXYWeakTimer(timer:Timer?,interval:TimeInterval,target:AnyObject,selector:Selector?, timerBlock:@escaping XYTimerBlock,userInfo:Dictionary<String, Any>?,repeats:Bool) -> Timer {
+    static func initWithWeakTimer(timer:Timer?,interval:TimeInterval,target:AnyObject,selector:Selector?, timerBlock:@escaping ADSTimerBlock,userInfo:Dictionary<String, Any>?,repeats:Bool) -> Timer {
         
         timer?.invalidate()
         
-        let obj = XYObject.init()
+        let obj = ADSTimeProxy.init()
 
         if selector == nil {
             
@@ -54,9 +54,7 @@ extension Timer {
 }
 
 
-
-
-class XYObject: NSObject {
+class ADSTimeProxy {
     
     fileprivate weak var target:AnyObject?
     fileprivate var timer:Timer!
@@ -64,7 +62,7 @@ class XYObject: NSObject {
     fileprivate var selector:Selector?
     fileprivate var control:UIControl = UIControl.init()
     
-    fileprivate var timerBlock:XYTimerBlock?
+    fileprivate var timerBlock:ADSTimerBlock?
     
     @objc fileprivate func responseTimer(timer:Timer) {
         
@@ -88,7 +86,7 @@ class XYObject: NSObject {
     }
     
     deinit {
-        print("XYObject 被释放了")
+        print("ADSTimeProxy 被释放了")
     }
     
 }

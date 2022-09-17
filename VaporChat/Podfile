@@ -24,12 +24,12 @@ use_frameworks!
   pod 'XLActionController'
   pod 'SQLite.swift' #代替 FMDB
   pod 'TSVoiceConverter' #音频格式转换
-  
+  pod 'ObjectMapper' #可以帮助我们快速的进行各个类型和Json类型的相互转换
+
 #  pod 'Valet' #管理keychain钥匙串
 #  pod 'PromiseKit' #异步变同步写法
 #  pod 'Hero' #自定义试图控制器过渡动画
 #  pod 'CryptoSwift' #加密
-#  pod 'ObjectMapper'
 
 
 #GDPerformanceView在状态栏上方显示 FPS，CPU 使用情况，app 和 iOS 版本，并通过 delegate 报告 FPS 和 CPU 使用情况。

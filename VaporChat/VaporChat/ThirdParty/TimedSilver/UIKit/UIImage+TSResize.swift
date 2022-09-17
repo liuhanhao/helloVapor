@@ -29,8 +29,8 @@ extension UIImage {
      - Returns A new image
      */
     public func ts_resize(_ size:CGSize, contentMode: ts_UIImageContentMode = .scaleToFill, quality: CGInterpolationQuality = .medium) -> UIImage? {
-        let horizontalRatio = size.width / self.size.width;
-        let verticalRatio = size.height / self.size.height;
+        let horizontalRatio = size.width / self.size.width
+        let verticalRatio = size.height / self.size.height
         var ratio: CGFloat!
         
         switch contentMode {
@@ -54,7 +54,7 @@ extension UIImage {
         let transform = CGAffineTransform.identity
         
         // Rotate and/or flip the image if required by its orientation
-        context?.concatenate(transform);
+        context?.concatenate(transform)
         
         // Set the quality level to use when rescaling
         context!.interpolationQuality = quality
@@ -62,12 +62,12 @@ extension UIImage {
         
         //CGContextSetInterpolationQuality(context, CGInterpolationQuality(kCGInterpolationHigh.value))
         
-        // Draw into the context; this scales the image
+        // Draw into the context this scales the image
         context?.draw(self.cgImage!, in: rect)
         
         // Get the resized image from the context and a UIImage
         let newImage = UIImage(cgImage: (context?.makeImage()!)!, scale: self.scale, orientation: self.imageOrientation)
-        return newImage;
+        return newImage
     }
 
     public func ts_crop(_ bounds: CGRect) -> UIImage? {

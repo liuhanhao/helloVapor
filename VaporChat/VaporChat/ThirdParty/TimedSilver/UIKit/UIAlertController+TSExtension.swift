@@ -91,7 +91,7 @@ public extension UIAlertController {
             let visibleVC = navVC.visibleViewController {
             self.ts_presentFromController(visibleVC, animated: animated, completion: completion)
         }  else {
-            controller.present(self, animated: animated, completion: completion);
+            controller.present(self, animated: animated, completion: completion)
         }
     }
     

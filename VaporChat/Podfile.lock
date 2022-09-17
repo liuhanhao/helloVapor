@@ -6,6 +6,7 @@ PODS:
   - NVActivityIndicatorView (5.1.1):
     - NVActivityIndicatorView/Base (= 5.1.1)
   - NVActivityIndicatorView/Base (5.1.1)
+  - ObjectMapper (4.2.0)
   - ReactiveCocoa (12.0.0):
     - ReactiveSwift (~> 7.0)
   - ReactiveSwift (7.0.0)
@@ -28,6 +29,7 @@ DEPENDENCIES:
   - FileKit
   - Kingfisher
   - NVActivityIndicatorView
+  - ObjectMapper
   - ReactiveCocoa
   - SnapKit
   - SQLite.swift
@@ -45,6 +47,7 @@ SPEC REPOS:
     - FileKit
     - Kingfisher
     - NVActivityIndicatorView
+    - ObjectMapper
     - ReactiveCocoa
     - ReactiveSwift
     - SnapKit
@@ -62,6 +65,7 @@ SPEC CHECKSUMS:
   FileKit: 10bfd8a3023a0b09f24c9f49546cbbddf43fd464
   Kingfisher: 016c8b653a35add51dd34a3aba36b580041acc74
   NVActivityIndicatorView: 1f6c5687f1171810aa27a3296814dc2d7dec3667
+  ObjectMapper: 1eb41f610210777375fa806bf161dc39fb832b81
   ReactiveCocoa: 5d10386f0ce09f922006efbf784881c5fade27c5
   ReactiveSwift: 48c4b9d3b497e8dd20b10300bb1a28ff93550f13
   SnapKit: e01d52ebb8ddbc333eefe2132acf85c8227d9c25
@@ -73,6 +77,6 @@ SPEC CHECKSUMS:
   UIColor_Hex_Swift: 31cd3e47440f07a20d2503a36bb0437a445b3c29
   XLActionController: 24140d835ab9e260270711afebc5efabebe9d392
 
-PODFILE CHECKSUM: 5786b893fbe7b1d6a6087f49d9a17a12baabbaec
+PODFILE CHECKSUM: 8c63d0770a8860a05aad32b55c9b94e44ae82b62
 
 COCOAPODS: 1.11.3

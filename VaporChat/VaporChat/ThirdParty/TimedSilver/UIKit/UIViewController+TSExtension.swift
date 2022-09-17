@@ -50,7 +50,7 @@ public extension UIViewController {
         let button: UIButton = UIButton(type: UIButton.ButtonType.custom)
         button.setImage(backImage, for: UIControl.State())
         button.frame = CGRect(x: 0, y: 0, width: 40, height: 30)
-        button.imageView!.contentMode = .scaleAspectFit;
+        button.imageView!.contentMode = .scaleAspectFit
         button.contentHorizontalAlignment = .left
         
         button.ts_addEventHandler(forControlEvent: .touchUpInside, handler: {[weak self] in

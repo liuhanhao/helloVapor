@@ -13,7 +13,7 @@ extension UIScrollView {
     /// All pages
     public var ts_pages: Int {
         get {
-            let pages = Int(self.contentSize.width / self.frame.size.width);
+            let pages = Int(self.contentSize.width / self.frame.size.width)
             return pages
         }
     }
@@ -21,7 +21,7 @@ extension UIScrollView {
     /// The current page
     public var ts_currentPage:Int {
         get {
-            let pages = Float(self.contentSize.width / self.frame.size.width);
+            let pages = Float(self.contentSize.width / self.frame.size.width)
             let scrollPercent = Float(self.ts_scrollPercent)
             let currentPage = roundf((pages-1)*scrollPercent)
             return Int(currentPage)
@@ -44,10 +44,10 @@ extension UIScrollView {
      - parameter animated: Animated
      */
     public func ts_setPageX(_ page: Int, animated: Bool? = nil) {
-        let pageWidth = self.frame.size.width;
-        let offsetY = self.contentOffset.y;
-        let offsetX = CGFloat(page) * pageWidth;
-        let offset = CGPoint(x: offsetX, y: offsetY);
+        let pageWidth = self.frame.size.width
+        let offsetY = self.contentOffset.y
+        let offsetX = CGFloat(page) * pageWidth
+        let offset = CGPoint(x: offsetX, y: offsetY)
         if animated == nil {
             self.setContentOffset(offset, animated: false)
         } else {
@@ -62,10 +62,10 @@ extension UIScrollView {
      - parameter animated: Animated
      */
     public func ts_setPageY(_ page: Int, animated: Bool? = nil) {
-        let pageHeight = self.frame.size.height;
-        let offsetX = self.contentOffset.x;
-        let offsetY = CGFloat(page) * pageHeight;
-        let offset = CGPoint(x: offsetX, y: offsetY);
+        let pageHeight = self.frame.size.height
+        let offsetX = self.contentOffset.x
+        let offsetY = CGFloat(page) * pageHeight
+        let offset = CGPoint(x: offsetX, y: offsetY)
         if animated == nil {
             self.setContentOffset(offset, animated: false)
         } else {

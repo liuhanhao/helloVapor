@@ -41,8 +41,8 @@ public extension UIImage {
         context?.clip(to: rect, mask: self.cgImage!)
         context?.drawLinearGradient(gradient!, start: CGPoint(x: 0, y: 0), end: CGPoint(x: 0, y: size.height), options: CGGradientDrawingOptions(rawValue: 0))
         let image = UIGraphicsGetImageFromCurrentImageContext()
-        UIGraphicsEndImageContext();
-        return image!;
+        UIGraphicsEndImageContext()
+        return image!
     }
 
     
@@ -127,9 +127,9 @@ public extension UIImage {
             return self
         }
         
-        let imageRef = self.cgImage;
-        let width = imageRef?.width;
-        let height = imageRef?.height;
+        let imageRef = self.cgImage
+        let width = imageRef?.width
+        let height = imageRef?.height
         let colorSpace = imageRef?.colorSpace
         
         // The bitsPerComponent and bitmapInfo values are hard-coded to prevent an "unsupported parameter combination" error
@@ -209,7 +209,7 @@ public extension UIImage {
                 width: UInt((effectInContext?.width)!),
                 rowBytes: (effectInContext?.bytesPerRow)!)
             
-            UIGraphicsBeginImageContextWithOptions(size, false, 0.0);
+            UIGraphicsBeginImageContextWithOptions(size, false, 0.0)
             let effectOutContext = UIGraphicsGetCurrentContext()
             
             var effectOutBuffer = vImage_Buffer(
@@ -284,7 +284,7 @@ public extension UIImage {
         if hasBlur {
             outputContext?.saveGState()
             if let image = maskImage {
-                outputContext?.clip(to: imageRect, mask: image.cgImage!);
+                outputContext?.clip(to: imageRect, mask: image.cgImage!)
             }
             outputContext?.draw(effectImage.cgImage!, in: imageRect)
             outputContext?.restoreGState()

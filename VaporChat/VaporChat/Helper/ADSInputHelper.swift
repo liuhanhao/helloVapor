@@ -181,7 +181,7 @@ class ADSInputHelper: NSObject {
     }
     
     //图片
-    func otherImageNamed(name: String) -> UIImage? {
+    static func otherImageNamed(name: String) -> UIImage? {
         if name.ts_length == 0 {
             return nil
         }

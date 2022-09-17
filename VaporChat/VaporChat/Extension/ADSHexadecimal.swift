@@ -176,7 +176,7 @@ class ADSHexadecimal {
     // data转数组
     static func dataConversionBytesArray(data:Data) -> [UInt8] {
         let bytes:[UInt8] = Array(data) // 直接转成byte数组
-        return bytes;
+        return bytes
     }
     
     // data转数组

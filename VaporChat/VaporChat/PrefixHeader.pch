@@ -1,0 +1,30 @@
+//
+//  PrefixHeader.pch
+//  VaporChat
+//
+//  Created by admin on 2022/9/15.
+//
+
+#ifndef PrefixHeader_pch
+#define PrefixHeader_pch
+
+// Include any system framework and library headers here that should be included in all compilation units.
+// You will also need to set the Prefix Header build setting of one or more of your targets to reference this file.
+
+//随便在一个文件中添加自己想要的类库
+///MARK:TODO 定义常用的类库信息, 使用@_exported关键字，就可以全局引入对应的包
+
+@import UIKit
+@import SwiftyJSON
+@import Kingfisher
+@import SnapKit
+@import ReactiveCocoa
+@import FileKit
+@import Alamofire
+@import SQLite
+@import Timepiece
+@import UIColor_Hex_Swift
+
+//在其他的文件中就不用再import对应的类库就可以直接使用了
+
+#endif /* PrefixHeader_pch */
