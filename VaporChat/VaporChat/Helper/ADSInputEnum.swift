@@ -30,9 +30,9 @@ enum ADSRecordType: Int {
          ADSRecordTypeFinish    //完成录音
 }
 
-enum WZInputMoreType: Int {
-    case WZInputMoreTypeImage = 0, //图片
-         WZInputMoreTypeVideo,     //视频
-         WZInputMoreTypeLocation,
-         WZInputMoreTypeTransfer
+enum ADSInputMoreType: Int {
+    case ADSInputMoreTypeImage = 0, //图片
+         ADSInputMoreTypeVideo,     //视频
+         ADSInputMoreTypeLocation,
+         ADSInputMoreTypeTransfer
 }

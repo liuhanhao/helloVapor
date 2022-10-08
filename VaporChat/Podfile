@@ -23,7 +23,7 @@ use_frameworks!
   pod "BSImagePicker"
   pod 'XLActionController'
   pod 'SQLite.swift' #代替 FMDB
-  pod 'TSVoiceConverter' #音频格式转换
+#  pod 'TSVoiceConverter' #音频格式转换
   pod 'ObjectMapper' #可以帮助我们快速的进行各个类型和Json类型的相互转换
 
 #  pod 'Valet' #管理keychain钥匙串

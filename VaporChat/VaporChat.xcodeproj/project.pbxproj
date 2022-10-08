@@ -7,8 +7,20 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0CE249DC28E0537000B92101 /* ADSInputBtn.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CE249C628E0537000B92101 /* ADSInputBtn.swift */; };
+		0CE249DD28E0537000B92101 /* ADSToolView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CE249C828E0537000B92101 /* ADSToolView.swift */; };
+		0CE249DE28E0537000B92101 /* ADSRecordAnimation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CE249C928E0537000B92101 /* ADSRecordAnimation.swift */; };
+		0CE249DF28E0537000B92101 /* ADSEmoticonManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CE249CD28E0537000B92101 /* ADSEmoticonManager.swift */; };
+		0CE249E028E0537000B92101 /* ADSHorizontalLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CE249D028E0537000B92101 /* ADSHorizontalLayout.swift */; };
+		0CE249E128E0537000B92101 /* ADSEmojisCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CE249D228E0537000B92101 /* ADSEmojisCell.swift */; };
+		0CE249E228E0537000B92101 /* ADSDeleteCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CE249D328E0537000B92101 /* ADSDeleteCell.swift */; };
+		0CE249E328E0537000B92101 /* ADSEmoticonCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CE249D428E0537000B92101 /* ADSEmoticonCell.swift */; };
+		0CE249E428E0537000B92101 /* ADSBlankCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CE249D528E0537000B92101 /* ADSBlankCell.swift */; };
+		0CE249E528E0537000B92101 /* ADSMoreKeyboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CE249D728E0537000B92101 /* ADSMoreKeyboard.swift */; };
+		0CE249E628E0537000B92101 /* ADSChatBtn.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CE249DA28E0537000B92101 /* ADSChatBtn.swift */; };
+		0CE249E828E0539C00B92101 /* ADSInputView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CE249E728E0539C00B92101 /* ADSInputView.swift */; };
+		0CE249EA28E0546A00B92101 /* ADSEmojisKeyboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CE249E928E0546A00B92101 /* ADSEmojisKeyboard.swift */; };
 		3440201C28D35FBC0098B270 /* ADSChatMessageModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3440201B28D35FBC0098B270 /* ADSChatMessageModel.swift */; };
-		3440202528D369980098B270 /* ADSChatBtn.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3440202428D369980098B270 /* ADSChatBtn.swift */; };
 		348BE40F28D04E0E008E30CE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 348BE40E28D04E0E008E30CE /* AppDelegate.swift */; };
 		348BE41128D04E0E008E30CE /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 348BE41028D04E0E008E30CE /* SceneDelegate.swift */; };
 		348BE41328D04E0E008E30CE /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 348BE41228D04E0E008E30CE /* ViewController.swift */; };
@@ -76,10 +88,6 @@
 		348BE4C028D07646008E30CE /* CGSize+TSExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 348BE48A28D07646008E30CE /* CGSize+TSExtension.swift */; };
 		348BE4C128D07646008E30CE /* Dictionary+TSExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 348BE48B28D07646008E30CE /* Dictionary+TSExtension.swift */; };
 		348BE4C228D07646008E30CE /* String+TSExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 348BE48C28D07646008E30CE /* String+TSExtension.swift */; };
-		34ADE12C28D488F900F3F92D /* ADSInputView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34ADE12B28D488F900F3F92D /* ADSInputView.swift */; };
-		34ADE13428D48A4B00F3F92D /* ADSInputBtn.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34ADE13328D48A4B00F3F92D /* ADSInputBtn.swift */; };
-		34ADE13628D48C8000F3F92D /* ADSRecordAnimation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34ADE13528D48C8000F3F92D /* ADSRecordAnimation.swift */; };
-		34ADE13828D494A600F3F92D /* ADSToolView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34ADE13728D494A600F3F92D /* ADSToolView.swift */; };
 		34B3464228D1901D00E30323 /* ADSInputBase64.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34B3464128D1901D00E30323 /* ADSInputBase64.swift */; };
 		34B3464B28D1CE2200E30323 /* Extension+ADSChat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34B3464A28D1CE2100E30323 /* Extension+ADSChat.swift */; };
 		34B3464F28D1CE3D00E30323 /* ADSChatHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34B3464E28D1CE3D00E30323 /* ADSChatHelper.swift */; };
@@ -143,11 +151,23 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		0CE249C628E0537000B92101 /* ADSInputBtn.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ADSInputBtn.swift; sourceTree = "<group>"; };
+		0CE249C828E0537000B92101 /* ADSToolView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ADSToolView.swift; sourceTree = "<group>"; };
+		0CE249C928E0537000B92101 /* ADSRecordAnimation.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ADSRecordAnimation.swift; sourceTree = "<group>"; };
+		0CE249CD28E0537000B92101 /* ADSEmoticonManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ADSEmoticonManager.swift; sourceTree = "<group>"; };
+		0CE249D028E0537000B92101 /* ADSHorizontalLayout.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ADSHorizontalLayout.swift; sourceTree = "<group>"; };
+		0CE249D228E0537000B92101 /* ADSEmojisCell.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ADSEmojisCell.swift; sourceTree = "<group>"; };
+		0CE249D328E0537000B92101 /* ADSDeleteCell.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ADSDeleteCell.swift; sourceTree = "<group>"; };
+		0CE249D428E0537000B92101 /* ADSEmoticonCell.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ADSEmoticonCell.swift; sourceTree = "<group>"; };
+		0CE249D528E0537000B92101 /* ADSBlankCell.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ADSBlankCell.swift; sourceTree = "<group>"; };
+		0CE249D728E0537000B92101 /* ADSMoreKeyboard.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ADSMoreKeyboard.swift; sourceTree = "<group>"; };
+		0CE249DA28E0537000B92101 /* ADSChatBtn.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ADSChatBtn.swift; sourceTree = "<group>"; };
+		0CE249E728E0539C00B92101 /* ADSInputView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ADSInputView.swift; sourceTree = "<group>"; };
+		0CE249E928E0546A00B92101 /* ADSEmojisKeyboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADSEmojisKeyboard.swift; sourceTree = "<group>"; };
 		138864362D60C9E4F64446B4 /* Pods_VaporChat.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_VaporChat.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		1EF00F882E6CCE5D9199F94E /* Pods-VaporChat.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-VaporChat.release.xcconfig"; path = "Target Support Files/Pods-VaporChat/Pods-VaporChat.release.xcconfig"; sourceTree = "<group>"; };
 		3440201A28D35EDC0098B270 /* PrefixHeader.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PrefixHeader.pch; sourceTree = "<group>"; };
 		3440201B28D35FBC0098B270 /* ADSChatMessageModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADSChatMessageModel.swift; sourceTree = "<group>"; };
-		3440202428D369980098B270 /* ADSChatBtn.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADSChatBtn.swift; sourceTree = "<group>"; };
 		348BE40B28D04E0E008E30CE /* VaporChat.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VaporChat.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		348BE40E28D04E0E008E30CE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		348BE41028D04E0E008E30CE /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
@@ -242,10 +262,6 @@
 		348BE48A28D07646008E30CE /* CGSize+TSExtension.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "CGSize+TSExtension.swift"; sourceTree = "<group>"; };
 		348BE48B28D07646008E30CE /* Dictionary+TSExtension.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Dictionary+TSExtension.swift"; sourceTree = "<group>"; };
 		348BE48C28D07646008E30CE /* String+TSExtension.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "String+TSExtension.swift"; sourceTree = "<group>"; };
-		34ADE12B28D488F900F3F92D /* ADSInputView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADSInputView.swift; sourceTree = "<group>"; };
-		34ADE13328D48A4B00F3F92D /* ADSInputBtn.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADSInputBtn.swift; sourceTree = "<group>"; };
-		34ADE13528D48C8000F3F92D /* ADSRecordAnimation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADSRecordAnimation.swift; sourceTree = "<group>"; };
-		34ADE13728D494A600F3F92D /* ADSToolView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADSToolView.swift; sourceTree = "<group>"; };
 		34B3464128D1901D00E30323 /* ADSInputBase64.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADSInputBase64.swift; sourceTree = "<group>"; };
 		34B3464A28D1CE2100E30323 /* Extension+ADSChat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Extension+ADSChat.swift"; sourceTree = "<group>"; };
 		34B3464E28D1CE3D00E30323 /* ADSChatHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADSChatHelper.swift; sourceTree = "<group>"; };
@@ -329,46 +345,144 @@
 			path = Pods;
 			sourceTree = "<group>";
 		};
-		3440201D28D3697B0098B270 /* View */ = {
+		0CE249C128E0537000B92101 /* View */ = {
 			isa = PBXGroup;
 			children = (
-				3440202028D3697B0098B270 /* Btn */,
-				3440201E28D3697B0098B270 /* InputView */,
-				3440202128D3697B0098B270 /* MsgCell */,
+				0CE249D928E0537000B92101 /* Btn */,
+				0CE249DB28E0537000B92101 /* MsgCell */,
+				0CE249C228E0537000B92101 /* InputView */,
 			);
-			name = View;
+			path = View;
 			sourceTree = "<group>";
 		};
-		3440201E28D3697B0098B270 /* InputView */ = {
+		0CE249C228E0537000B92101 /* InputView */ = {
 			isa = PBXGroup;
 			children = (
-				34ADE12B28D488F900F3F92D /* ADSInputView.swift */,
-				34ADE12A28D488E600F3F92D /* View */,
+				0CE249C328E0537000B92101 /* InputView */,
+				0CE249D828E0537000B92101 /* BaseInputView */,
 			);
 			path = InputView;
 			sourceTree = "<group>";
 		};
-		3440202028D3697B0098B270 /* Btn */ = {
+		0CE249C328E0537000B92101 /* InputView */ = {
 			isa = PBXGroup;
 			children = (
-				3440202428D369980098B270 /* ADSChatBtn.swift */,
+				0CE249E728E0539C00B92101 /* ADSInputView.swift */,
+				0CE249C428E0537000B92101 /* View */,
+			);
+			path = InputView;
+			sourceTree = "<group>";
+		};
+		0CE249C428E0537000B92101 /* View */ = {
+			isa = PBXGroup;
+			children = (
+				0CE249C528E0537000B92101 /* Btn */,
+				0CE249C728E0537000B92101 /* ToolView */,
+				0CE249CA28E0537000B92101 /* Keyboard */,
+			);
+			path = View;
+			sourceTree = "<group>";
+		};
+		0CE249C528E0537000B92101 /* Btn */ = {
+			isa = PBXGroup;
+			children = (
+				0CE249C628E0537000B92101 /* ADSInputBtn.swift */,
 			);
 			path = Btn;
 			sourceTree = "<group>";
 		};
-		3440202128D3697B0098B270 /* MsgCell */ = {
+		0CE249C728E0537000B92101 /* ToolView */ = {
 			isa = PBXGroup;
 			children = (
-				3440202228D3697B0098B270 /* BaseCell */,
+				0CE249C828E0537000B92101 /* ADSToolView.swift */,
+				0CE249C928E0537000B92101 /* ADSRecordAnimation.swift */,
 			);
-			path = MsgCell;
+			path = ToolView;
 			sourceTree = "<group>";
 		};
-		3440202228D3697B0098B270 /* BaseCell */ = {
+		0CE249CA28E0537000B92101 /* Keyboard */ = {
+			isa = PBXGroup;
+			children = (
+				0CE249CB28E0537000B92101 /* EmojisKeyboard */,
+				0CE249D628E0537000B92101 /* MoreKeyboard */,
+			);
+			path = Keyboard;
+			sourceTree = "<group>";
+		};
+		0CE249CB28E0537000B92101 /* EmojisKeyboard */ = {
+			isa = PBXGroup;
+			children = (
+				0CE249E928E0546A00B92101 /* ADSEmojisKeyboard.swift */,
+				0CE249CC28E0537000B92101 /* EmoticonManager */,
+				0CE249CE28E0537000B92101 /* View */,
+			);
+			path = EmojisKeyboard;
+			sourceTree = "<group>";
+		};
+		0CE249CC28E0537000B92101 /* EmoticonManager */ = {
+			isa = PBXGroup;
+			children = (
+				0CE249CD28E0537000B92101 /* ADSEmoticonManager.swift */,
+			);
+			path = EmoticonManager;
+			sourceTree = "<group>";
+		};
+		0CE249CE28E0537000B92101 /* View */ = {
+			isa = PBXGroup;
+			children = (
+				0CE249CF28E0537000B92101 /* Layout */,
+				0CE249D128E0537000B92101 /* Cell */,
+			);
+			path = View;
+			sourceTree = "<group>";
+		};
+		0CE249CF28E0537000B92101 /* Layout */ = {
+			isa = PBXGroup;
+			children = (
+				0CE249D028E0537000B92101 /* ADSHorizontalLayout.swift */,
+			);
+			path = Layout;
+			sourceTree = "<group>";
+		};
+		0CE249D128E0537000B92101 /* Cell */ = {
+			isa = PBXGroup;
+			children = (
+				0CE249D228E0537000B92101 /* ADSEmojisCell.swift */,
+				0CE249D328E0537000B92101 /* ADSDeleteCell.swift */,
+				0CE249D428E0537000B92101 /* ADSEmoticonCell.swift */,
+				0CE249D528E0537000B92101 /* ADSBlankCell.swift */,
+			);
+			path = Cell;
+			sourceTree = "<group>";
+		};
+		0CE249D628E0537000B92101 /* MoreKeyboard */ = {
+			isa = PBXGroup;
+			children = (
+				0CE249D728E0537000B92101 /* ADSMoreKeyboard.swift */,
+			);
+			path = MoreKeyboard;
+			sourceTree = "<group>";
+		};
+		0CE249D828E0537000B92101 /* BaseInputView */ = {
 			isa = PBXGroup;
 			children = (
 			);
-			path = BaseCell;
+			path = BaseInputView;
+			sourceTree = "<group>";
+		};
+		0CE249D928E0537000B92101 /* Btn */ = {
+			isa = PBXGroup;
+			children = (
+				0CE249DA28E0537000B92101 /* ADSChatBtn.swift */,
+			);
+			path = Btn;
+			sourceTree = "<group>";
+		};
+		0CE249DB28E0537000B92101 /* MsgCell */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = MsgCell;
 			sourceTree = "<group>";
 		};
 		348BE40228D04E0E008E30CE = {
@@ -552,103 +666,13 @@
 			path = Struct;
 			sourceTree = "<group>";
 		};
-		34ADE12A28D488E600F3F92D /* View */ = {
-			isa = PBXGroup;
-			children = (
-				34ADE13128D48A2500F3F92D /* Btn */,
-				34ADE13228D48A2500F3F92D /* Keyboard */,
-				34ADE13028D48A2500F3F92D /* ToolView */,
-			);
-			path = View;
-			sourceTree = "<group>";
-		};
-		34ADE13028D48A2500F3F92D /* ToolView */ = {
-			isa = PBXGroup;
-			children = (
-				34ADE13528D48C8000F3F92D /* ADSRecordAnimation.swift */,
-				34ADE13728D494A600F3F92D /* ADSToolView.swift */,
-			);
-			path = ToolView;
-			sourceTree = "<group>";
-		};
-		34ADE13128D48A2500F3F92D /* Btn */ = {
-			isa = PBXGroup;
-			children = (
-				34ADE13328D48A4B00F3F92D /* ADSInputBtn.swift */,
-			);
-			path = Btn;
-			sourceTree = "<group>";
-		};
-		34ADE13228D48A2500F3F92D /* Keyboard */ = {
-			isa = PBXGroup;
-			children = (
-				34ADE13928D4A78800F3F92D /* EmojisKeyboard */,
-				34ADE13F28D4A78800F3F92D /* MoreKeyboard */,
-			);
-			path = Keyboard;
-			sourceTree = "<group>";
-		};
-		34ADE13928D4A78800F3F92D /* EmojisKeyboard */ = {
-			isa = PBXGroup;
-			children = (
-				34ADE13A28D4A78800F3F92D /* EmoticonManager */,
-				34ADE13E28D4A78800F3F92D /* View */,
-			);
-			path = EmojisKeyboard;
-			sourceTree = "<group>";
-		};
-		34ADE13A28D4A78800F3F92D /* EmoticonManager */ = {
-			isa = PBXGroup;
-			children = (
-				34ADE13B28D4A78800F3F92D /* View */,
-			);
-			path = EmoticonManager;
-			sourceTree = "<group>";
-		};
-		34ADE13B28D4A78800F3F92D /* View */ = {
-			isa = PBXGroup;
-			children = (
-				34ADE13C28D4A78800F3F92D /* Layout */,
-				34ADE13D28D4A78800F3F92D /* Cell */,
-			);
-			path = View;
-			sourceTree = "<group>";
-		};
-		34ADE13C28D4A78800F3F92D /* Layout */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Layout;
-			sourceTree = "<group>";
-		};
-		34ADE13D28D4A78800F3F92D /* Cell */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Cell;
-			sourceTree = "<group>";
-		};
-		34ADE13E28D4A78800F3F92D /* View */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = View;
-			sourceTree = "<group>";
-		};
-		34ADE13F28D4A78800F3F92D /* MoreKeyboard */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = MoreKeyboard;
-			sourceTree = "<group>";
-		};
 		34B3464328D1C78600E30323 /* Chat */ = {
 			isa = PBXGroup;
 			children = (
+				0CE249C128E0537000B92101 /* View */,
 				34B3464928D1C7DD00E30323 /* Common */,
 				34B3464428D1C7DD00E30323 /* Controller */,
 				34B3464628D1C7DD00E30323 /* Model */,
-				34B3464828D1C7DD00E30323 /* View */,
 			);
 			path = Chat;
 			sourceTree = "<group>";
@@ -679,14 +703,6 @@
 				3440201B28D35FBC0098B270 /* ADSChatMessageModel.swift */,
 			);
 			path = Model;
-			sourceTree = "<group>";
-		};
-		34B3464828D1C7DD00E30323 /* View */ = {
-			isa = PBXGroup;
-			children = (
-				3440201D28D3697B0098B270 /* View */,
-			);
-			path = View;
 			sourceTree = "<group>";
 		};
 		34B3464928D1C7DD00E30323 /* Common */ = {
@@ -1031,11 +1047,13 @@
 				348BE4C028D07646008E30CE /* CGSize+TSExtension.swift in Sources */,
 				348BE4AC28D07646008E30CE /* UITableView+TSExtension.swift in Sources */,
 				348BE4BC28D07646008E30CE /* NSString+TSExtension.swift in Sources */,
+				0CE249E828E0539C00B92101 /* ADSInputView.swift in Sources */,
 				34BB86E228D09BD300362FB9 /* ArekNotifications.swift in Sources */,
 				348BE49728D07646008E30CE /* UIButton+TSTouchArea.swift in Sources */,
 				348BE4B128D07646008E30CE /* NotificationCenter+TSBlock.swift in Sources */,
 				348BE4BE28D07646008E30CE /* String+TSCrypto.swift in Sources */,
 				34D2144228D34D76007A654C /* ADSChatUserModel.swift in Sources */,
+				0CE249E228E0537000B92101 /* ADSDeleteCell.swift in Sources */,
 				348BE4B728D07646008E30CE /* NSDictionary+TSExtension.swift in Sources */,
 				34B3465328D1CE5200E30323 /* ADSChatBaseModel.swift in Sources */,
 				348BE42728D04E76008E30CE /* ADSChatURL.swift in Sources */,
@@ -1044,8 +1062,8 @@
 				348BE44E28D055D3008E30CE /* ADSHexadecimal.swift in Sources */,
 				348BE42B28D04F0A008E30CE /* ADSInputHelper.swift in Sources */,
 				34BB86D228D09BD300362FB9 /* ArekSpeechRecognizer.swift in Sources */,
-				3440202528D369980098B270 /* ADSChatBtn.swift in Sources */,
 				348BE41328D04E0E008E30CE /* ViewController.swift in Sources */,
+				0CE249DE28E0537000B92101 /* ADSRecordAnimation.swift in Sources */,
 				348BE49928D07646008E30CE /* UIView+TSExtension.swift in Sources */,
 				34B3465128D1CE4500E30323 /* 3.swift in Sources */,
 				348BE4B928D07646008E30CE /* Data+TSExtension.swift in Sources */,
@@ -1075,29 +1093,33 @@
 				348BE49B28D07646008E30CE /* UIImage+TSRoundedCorner.swift in Sources */,
 				348BE4C228D07646008E30CE /* String+TSExtension.swift in Sources */,
 				34BB868828D0773400362FB9 /* UIViewExtension.swift in Sources */,
-				34ADE12C28D488F900F3F92D /* ADSInputView.swift in Sources */,
 				34B3464F28D1CE3D00E30323 /* ADSChatHelper.swift in Sources */,
+				0CE249E528E0537000B92101 /* ADSMoreKeyboard.swift in Sources */,
 				348BE49428D07646008E30CE /* UILabel+TSExtension.swift in Sources */,
 				34D2144428D34D86007A654C /* ADSChatGroupModel.swift in Sources */,
 				34BB86D828D09BD300362FB9 /* ArekCloudKit.swift in Sources */,
 				34BB868928D0773400362FB9 /* UIScrollViewRefresh.swift in Sources */,
 				348BE4AA28D07646008E30CE /* UIScrollView+TSExtension.swift in Sources */,
 				348BE4BA28D07646008E30CE /* Timer+TSBlock.swift in Sources */,
+				0CE249EA28E0546A00B92101 /* ADSEmojisKeyboard.swift in Sources */,
 				348BE45028D055D7008E30CE /* Extension+NSTimer.swift in Sources */,
 				348BE4A328D07646008E30CE /* UICollectionView+TSExtension.swift in Sources */,
 				34BB86E328D09BD300362FB9 /* ArekSiri.swift in Sources */,
-				34ADE13628D48C8000F3F92D /* ADSRecordAnimation.swift in Sources */,
 				348BE4A728D07646008E30CE /* UIDevice+TSExtension.swift in Sources */,
 				348BE4B528D07646008E30CE /* NSObject+TSExtension.swift in Sources */,
 				34D2144828D35A50007A654C /* ADSChatObject.swift in Sources */,
+				0CE249E128E0537000B92101 /* ADSEmojisCell.swift in Sources */,
+				0CE249E428E0537000B92101 /* ADSBlankCell.swift in Sources */,
 				34BB86CD28D09BD300362FB9 /* ArekPopupStyle.swift in Sources */,
 				34BB86D128D09BD300362FB9 /* ArekCamera.swift in Sources */,
+				0CE249DC28E0537000B92101 /* ADSInputBtn.swift in Sources */,
 				34BB869228D0773400362FB9 /* JRefreshGifHeader.swift in Sources */,
 				348BE4B328D07646008E30CE /* UserDefaults+TSExtension.swift in Sources */,
 				34BB869328D0773400362FB9 /* JRefreshHeader.swift in Sources */,
 				348BE4BF28D07646008E30CE /* Array+TSExtension.swift in Sources */,
 				34BB868728D0773400362FB9 /* UILabelExtension.swift in Sources */,
 				348BE49F28D07646008E30CE /* UIAlertController+TSExtension.swift in Sources */,
+				0CE249E028E0537000B92101 /* ADSHorizontalLayout.swift in Sources */,
 				34BB86D528D09BD300362FB9 /* ArekLocationWhenInUse.swift in Sources */,
 				34BB86CF28D09BD300362FB9 /* ArekPermissionStatus.swift in Sources */,
 				348BE4A028D07646008E30CE /* UIButton+TSExtension.swift in Sources */,
@@ -1116,7 +1138,9 @@
 				348BE4A528D07646008E30CE /* UIScreen+TSExtension.swift in Sources */,
 				34BB869028D0773400362FB9 /* JRefreshNormalHeader.swift in Sources */,
 				34BB86E028D09BD300362FB9 /* ArekReminders.swift in Sources */,
+				0CE249DD28E0537000B92101 /* ADSToolView.swift in Sources */,
 				34BB86C728D09BD300362FB9 /* PMAlertAction.swift in Sources */,
+				0CE249E628E0537000B92101 /* ADSChatBtn.swift in Sources */,
 				34BB868A28D0773400362FB9 /* JRefreshConst.swift in Sources */,
 				348BE42C28D04F0A008E30CE /* ADSInputEnum.swift in Sources */,
 				348BE4BB28D07646008E30CE /* Date+TSExtension.swift in Sources */,
@@ -1124,8 +1148,8 @@
 				348BE49A28D07646008E30CE /* UIView+TSGestureBlock.swift in Sources */,
 				34B3464228D1901D00E30323 /* ADSInputBase64.swift in Sources */,
 				34BB868E28D0773400362FB9 /* JRefreshAutoStateFooter.swift in Sources */,
-				34ADE13428D48A4B00F3F92D /* ADSInputBtn.swift in Sources */,
 				34BB86DB28D09BD300362FB9 /* ArekBluetooth.swift in Sources */,
+				0CE249DF28E0537000B92101 /* ADSEmoticonManager.swift in Sources */,
 				34BB86CB28D09BD300362FB9 /* ArekPermissionFrequency.swift in Sources */,
 				348BE40F28D04E0E008E30CE /* AppDelegate.swift in Sources */,
 				348BE41128D04E0E008E30CE /* SceneDelegate.swift in Sources */,
@@ -1134,10 +1158,10 @@
 				34BB86D428D09BD300362FB9 /* ArekLocationAlways.swift in Sources */,
 				34BB86D328D09BD300362FB9 /* ArekEvents.swift in Sources */,
 				34BB869528D0773400362FB9 /* JRefreshComponent.swift in Sources */,
-				34ADE13828D494A600F3F92D /* ADSToolView.swift in Sources */,
 				348BE4B628D07646008E30CE /* IndexPath+TSOffset.swift in Sources */,
 				348BE4A428D07646008E30CE /* UINavigationController+TSExtension.swift in Sources */,
 				34BB86DF28D09BD300362FB9 /* ArekHealth.swift in Sources */,
+				0CE249E328E0537000B92101 /* ADSEmoticonCell.swift in Sources */,
 				348BE49328D07646008E30CE /* UICollectionView+TSGeneric.swift in Sources */,
 				348BE49028D07646008E30CE /* UIImage+TSLaunchImage.swift in Sources */,
 				348BE4AE28D07646008E30CE /* FileManager+TSExtension.swift in Sources */,
@@ -1323,6 +1347,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 8EDD6KAQ5R;
 				ENABLE_BITCODE = NO;
+				EXCLUDED_ARCHS = "";
 				GCC_PREFIX_HEADER = "$(SRCROOT)/VaporChat/PrefixHeader.pch";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = VaporChat/Info.plist;
@@ -1345,6 +1370,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
+				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = juanvision.VaporChat;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -1363,6 +1389,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 8EDD6KAQ5R;
 				ENABLE_BITCODE = NO;
+				EXCLUDED_ARCHS = "";
 				GCC_PREFIX_HEADER = "$(SRCROOT)/VaporChat/PrefixHeader.pch";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = VaporChat/Info.plist;

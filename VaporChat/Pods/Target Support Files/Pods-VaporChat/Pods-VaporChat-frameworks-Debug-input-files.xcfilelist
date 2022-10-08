@@ -11,7 +11,6 @@ ${BUILT_PRODUCTS_DIR}/SQLite.swift/SQLite.framework
 ${BUILT_PRODUCTS_DIR}/SnapKit/SnapKit.framework
 ${BUILT_PRODUCTS_DIR}/Starscream/Starscream.framework
 ${BUILT_PRODUCTS_DIR}/SwiftyJSON/SwiftyJSON.framework
-${BUILT_PRODUCTS_DIR}/TSVoiceConverter/TSVoiceConverter.framework
 ${BUILT_PRODUCTS_DIR}/Timepiece/Timepiece.framework
 ${BUILT_PRODUCTS_DIR}/UIColor_Hex_Swift/UIColor_Hex_Swift.framework
 ${BUILT_PRODUCTS_DIR}/XLActionController/XLActionController.framework

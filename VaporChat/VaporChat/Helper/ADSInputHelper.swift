@@ -207,7 +207,7 @@ class ADSInputHelper: NSObject {
     }
     
     //图片
-    func emoticonImageNamed(name: String) -> UIImage? {
+    static func emoticonImageNamed(name: String) -> UIImage? {
         if name.ts_length == 0 {
             return nil
         }
