@@ -21,6 +21,7 @@
 		0CE249E828E0539C00B92101 /* ADSInputView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CE249E728E0539C00B92101 /* ADSInputView.swift */; };
 		0CE249EA28E0546A00B92101 /* ADSEmojisKeyboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CE249E928E0546A00B92101 /* ADSEmojisKeyboard.swift */; };
 		3440201C28D35FBC0098B270 /* ADSChatMessageModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3440201B28D35FBC0098B270 /* ADSChatMessageModel.swift */; };
+		348410EB28FD67C300E369C5 /* WZMBaseInputView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 348410EA28FD67C300E369C5 /* WZMBaseInputView.swift */; };
 		348BE40F28D04E0E008E30CE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 348BE40E28D04E0E008E30CE /* AppDelegate.swift */; };
 		348BE41128D04E0E008E30CE /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 348BE41028D04E0E008E30CE /* SceneDelegate.swift */; };
 		348BE41328D04E0E008E30CE /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 348BE41228D04E0E008E30CE /* ViewController.swift */; };
@@ -168,6 +169,7 @@
 		1EF00F882E6CCE5D9199F94E /* Pods-VaporChat.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-VaporChat.release.xcconfig"; path = "Target Support Files/Pods-VaporChat/Pods-VaporChat.release.xcconfig"; sourceTree = "<group>"; };
 		3440201A28D35EDC0098B270 /* PrefixHeader.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PrefixHeader.pch; sourceTree = "<group>"; };
 		3440201B28D35FBC0098B270 /* ADSChatMessageModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADSChatMessageModel.swift; sourceTree = "<group>"; };
+		348410EA28FD67C300E369C5 /* WZMBaseInputView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WZMBaseInputView.swift; sourceTree = "<group>"; };
 		348BE40B28D04E0E008E30CE /* VaporChat.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VaporChat.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		348BE40E28D04E0E008E30CE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		348BE41028D04E0E008E30CE /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
@@ -466,6 +468,7 @@
 		0CE249D828E0537000B92101 /* BaseInputView */ = {
 			isa = PBXGroup;
 			children = (
+				348410EA28FD67C300E369C5 /* WZMBaseInputView.swift */,
 			);
 			path = BaseInputView;
 			sourceTree = "<group>";
@@ -917,7 +920,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				CLASSPREFIX = ADS;
+				CLASSPREFIX = WZM;
 				LastSwiftUpdateCheck = 1340;
 				LastUpgradeCheck = 1340;
 				TargetAttributes = {
@@ -1047,6 +1050,7 @@
 				348BE4C028D07646008E30CE /* CGSize+TSExtension.swift in Sources */,
 				348BE4AC28D07646008E30CE /* UITableView+TSExtension.swift in Sources */,
 				348BE4BC28D07646008E30CE /* NSString+TSExtension.swift in Sources */,
+				348410EB28FD67C300E369C5 /* WZMBaseInputView.swift in Sources */,
 				0CE249E828E0539C00B92101 /* ADSInputView.swift in Sources */,
 				34BB86E228D09BD300362FB9 /* ArekNotifications.swift in Sources */,
 				348BE49728D07646008E30CE /* UIButton+TSTouchArea.swift in Sources */,
