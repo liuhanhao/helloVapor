@@ -89,6 +89,7 @@
 		348BE4C028D07646008E30CE /* CGSize+TSExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 348BE48A28D07646008E30CE /* CGSize+TSExtension.swift */; };
 		348BE4C128D07646008E30CE /* Dictionary+TSExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 348BE48B28D07646008E30CE /* Dictionary+TSExtension.swift */; };
 		348BE4C228D07646008E30CE /* String+TSExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 348BE48C28D07646008E30CE /* String+TSExtension.swift */; };
+		3498BD5D28FF9A7900E8A521 /* Extension+String.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3498BD5C28FF9A7900E8A521 /* Extension+String.swift */; };
 		34B3464228D1901D00E30323 /* ADSInputBase64.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34B3464128D1901D00E30323 /* ADSInputBase64.swift */; };
 		34B3464B28D1CE2200E30323 /* Extension+ADSChat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34B3464A28D1CE2100E30323 /* Extension+ADSChat.swift */; };
 		34B3464F28D1CE3D00E30323 /* ADSChatHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34B3464E28D1CE3D00E30323 /* ADSChatHelper.swift */; };
@@ -264,6 +265,7 @@
 		348BE48A28D07646008E30CE /* CGSize+TSExtension.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "CGSize+TSExtension.swift"; sourceTree = "<group>"; };
 		348BE48B28D07646008E30CE /* Dictionary+TSExtension.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Dictionary+TSExtension.swift"; sourceTree = "<group>"; };
 		348BE48C28D07646008E30CE /* String+TSExtension.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "String+TSExtension.swift"; sourceTree = "<group>"; };
+		3498BD5C28FF9A7900E8A521 /* Extension+String.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Extension+String.swift"; sourceTree = "<group>"; };
 		34B3464128D1901D00E30323 /* ADSInputBase64.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADSInputBase64.swift; sourceTree = "<group>"; };
 		34B3464A28D1CE2100E30323 /* Extension+ADSChat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Extension+ADSChat.swift"; sourceTree = "<group>"; };
 		34B3464E28D1CE3D00E30323 /* ADSChatHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADSChatHelper.swift; sourceTree = "<group>"; };
@@ -570,6 +572,7 @@
 				348BE44D28D055D3008E30CE /* ADSHexadecimal.swift */,
 				34B3464A28D1CE2100E30323 /* Extension+ADSChat.swift */,
 				34D2144728D35A50007A654C /* ADSChatObject.swift */,
+				3498BD5C28FF9A7900E8A521 /* Extension+String.swift */,
 			);
 			path = Extension;
 			sourceTree = "<group>";
@@ -1135,6 +1138,7 @@
 				348BE4A628D07646008E30CE /* UIControl+TSSound.swift in Sources */,
 				348BE49628D07646008E30CE /* UIViewController+TSExtension.swift in Sources */,
 				34BB86D728D09BD300362FB9 /* ArekBaseLocation.swift in Sources */,
+				3498BD5D28FF9A7900E8A521 /* Extension+String.swift in Sources */,
 				34BB86DD28D09BD300362FB9 /* ArekMicrophone.swift in Sources */,
 				34BB86E128D09BD300362FB9 /* ArekMotion.swift in Sources */,
 				34BB868D28D0773400362FB9 /* JRefreshAutoNormalFooter.swift in Sources */,

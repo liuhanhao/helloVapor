@@ -28,7 +28,7 @@ enum ADSMessageSendType: Int {
          WZMMessageSendTypeFailed     //发送失败
 }
 
-class ADSChatMessageModel: ADSChatBaseModel {
+@objcMembers class ADSChatMessageModel: ADSChatBaseModel {
 
     // TODO: 消息基本信息
     ///消息id
@@ -40,7 +40,7 @@ class ADSChatMessageModel: ADSChatBaseModel {
     ///发送人头像
     var avatar: String?
     ///文本内容
-    var message: String?
+    var message: String = ""
     ///是否是自己发送
     var sender: Bool?
     ///是否已读
@@ -76,6 +76,17 @@ class ADSChatMessageModel: ADSChatBaseModel {
     //视频封面地址
     var coverUrl: String?
     
+    lazy var _attStr = {
+        var style: NSMutableParagraphStyle = NSMutableParagraphStyle.init()
+        style.lineSpacing = 2
+        
+        let att = ADSEmoticonManager.manager().attributedString(aString: self.message)
+        att.addAttribute(NSAttributedString.Key.font, value: UIFont.systemFont(ofSize: 15), range: NSMakeRange(0, att.length))
+        att.addAttribute(NSAttributedString.Key.paragraphStyle , value: style, range: NSMakeRange(0, att.length))
+        
+        return att
+    }()
+    
     required init?(map: Map) {
         super.init(map: map)
 //        // 检查 JSON 里是否有一定要有的 "name" 属性
@@ -84,6 +95,10 @@ class ADSChatMessageModel: ADSChatBaseModel {
 //        }
     }
 
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+    }
+    
     // Mappable
     override func mapping(map: Map) { // 支持点语法
         super.mapping(map: map)

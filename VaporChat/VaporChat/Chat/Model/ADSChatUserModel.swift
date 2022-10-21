@@ -8,8 +8,12 @@
 import UIKit
 import ObjectMapper
 
-class ADSChatUserModel: ADSChatBaseModel {
+@objcMembers class ADSChatUserModel: ADSChatBaseModel {
 
+    ///默认登录用户
+    let shareInfo = ADSChatUserModel.init(uid: "00001",
+                                          name: "无敌是多么的寂寞",
+                                          avatar: "http://sqb.wowozhe.com/images/home/wx_appicon.png")
     ///用户id
     var uid: String?
     ///用户昵称
@@ -34,7 +38,11 @@ class ADSChatUserModel: ADSChatBaseModel {
 //            return nil
 //        }
     }
-
+    
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+    }
+    
     // Mappable
     override func mapping(map: Map) { // 支持点语法
         super.mapping(map: map)

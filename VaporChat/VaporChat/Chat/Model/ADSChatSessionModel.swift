@@ -8,7 +8,7 @@
 import UIKit
 import ObjectMapper
 
-class ADSChatSessionModel: ADSChatBaseModel {
+@objcMembers class ADSChatSessionModel: ADSChatBaseModel {
 
     ///会话id<若会话为群聊,则sid为群聊gid, 若会话为私聊,则sid为对方uid>
     var sid: String?
@@ -40,6 +40,10 @@ class ADSChatSessionModel: ADSChatBaseModel {
 //        }
     }
 
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+    }
+    
     // Mappable
     override func mapping(map: Map) { // 支持点语法
         super.mapping(map: map)
