@@ -17,12 +17,13 @@ import ObjectMapper
         super.init()
     }
     
-    class func chat_unarchiveObjectWithData(data: Data) -> Self {
+    class func chat_unarchiveObjectWithData(data: Data) -> Self? {
         if self.conforms(to: NSCoding.self) {
             if class_respondsToSelector(self, #selector(encode(with:))) {
-                return NSKeyedUnarchiver.unarchiveObject(with: data) as! Self
+                return NSKeyedUnarchiver.unarchiveObject(with: data) as? Self
             }
         }
+        return nil
     }
     
     ///<model/字典>数据转换
@@ -49,6 +50,7 @@ import ObjectMapper
     }
     
     required init?(coder: NSCoder) {
+        super.init()
         let count = UnsafeMutablePointer<UInt32>.allocate(capacity: 0)
         let ivarLists = class_copyIvarList(object_getClass(Self.self), count)
         let countInt = Int(count[0])

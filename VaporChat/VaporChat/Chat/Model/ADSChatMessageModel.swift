@@ -29,7 +29,7 @@ enum ADSMessageSendType: Int {
 }
 
 @objcMembers class ADSChatMessageModel: ADSChatBaseModel {
-
+    
     // TODO: 消息基本信息
     ///消息id
     var mid: String = String(format:"%.f", ADSChatHelper.nowTimestamp())
@@ -55,28 +55,28 @@ enum ADSMessageSendType: Int {
     var modelW: Int = -1
     ///缓存model高, 优化列表滑动
     var modelH: Int = -1
-
+    
     // TODO: 图片消息
     //图片宽高
-    var imgW: Int?
-    var imgH: Int?
+    var imgW: CGFloat = 1.0
+    var imgH: CGFloat = 1.0
     //原图和缩略图
     var original: String?
     var thumbnail: String?
-
+    
     // TODO: 声音消息
     //声音地址
     var voiceUrl: String?
     //声音时长
-    var duration: Int?
-
+    var duration: CGFloat = 0.0
+    
     // TODO: 视频消息
     //视频地址
     var videoUrl: String?
     //视频封面地址
     var coverUrl: String?
     
-    lazy var _attStr = {
+    lazy var attStr = {
         var style: NSMutableParagraphStyle = NSMutableParagraphStyle.init()
         style.lineSpacing = 2
         
@@ -89,12 +89,12 @@ enum ADSMessageSendType: Int {
     
     required init?(map: Map) {
         super.init(map: map)
-//        // 检查 JSON 里是否有一定要有的 "name" 属性
-//        if map.JSON["name"] == nil {
-//            return nil
-//        }
+        //        // 检查 JSON 里是否有一定要有的 "name" 属性
+        //        if map.JSON["name"] == nil {
+        //            return nil
+        //        }
     }
-
+    
     required init?(coder: NSCoder) {
         super.init(coder: coder)
     }
@@ -104,71 +104,93 @@ enum ADSMessageSendType: Int {
         super.mapping(map: map)
     }
     
-//    // 富文本
-//    var attributedString: NSAttributedString {
-//        set {
-//
-//        }
-//        get {
-//            var style = NSMutableParagraphStyle.init()
-//            style.lineSpacing = 2
-//            let a = [NSAttributedString.Key.font: UIFont.systemFont(ofSize: 15),
-//                     NSAttributedString.Key.paragraphStyle: style
-//            ]
-//            let att = NSMutableAttributedString.init(string: <#T##String#>, attributes: <#T##[NSAttributedString.Key : Any]?#>)
-//        }
-//    }
-//
-//    // MARK: - 消息的自定义处理
-//    ///缓存model尺寸
-//    func cacheModelSize() -> Void {
-//        if (self.modelH == -1 || self.modelW == -1) {
-//            if (self.msgType == .ADSMessageTypeSystem) {
-//                self.modelH = 20;
-//                self.modelW = ADSInputHelper.sharedHelper.screenW();
-//            }
-//            else if (self.msgType == .ADSMessageTypeText) {
-//                let size = self.att
-//                CGSize size = [[self attributedString] boundingRectWithSize:CGSizeMake((CHAT_SCREEN_WIDTH-127), CGFLOAT_MAX)
-//                                                                    options:NSStringDrawingUsesLineFragmentOrigin
-//                                                                    context:nil].size;
-//                self.modelH = MAX(ceil(size.height), 30);
-//                self.modelW = MAX(ceil(size.width), 30);
-//            }
-//            else if (self.msgType == WZMMessageTypeImage) {
-//                [self handleImageSize];
-//                self.modelH = self.imgH;
-//                self.modelW = self.imgW;
-//            }
-//            else if (self.msgType == WZMMessageTypeVoice) {
-//                CGFloat minW = 60;
-//                CGFloat dw = 5.2;
-//                if (CHAT_SCREEN_WIDTH > 375) {
-//                    minW = 70;
-//                    dw = 5.6;
-//                }
-//                if (self.duration < 6) {
-//                    self.modelW = minW+self.duration*dw;
-//                }
-//                else if (self.duration < 11) {
-//                    self.modelW = minW+dw*5+(self.duration-5)*(dw-2);
-//                }
-//                else if (self.duration < 21) {
-//                    self.modelW = minW+dw*5+(dw-2)*5+(self.duration-10)*(dw-3);
-//                }
-//                else  if (self.duration < 61) {
-//                    self.modelW = minW+dw*5+(dw-2)*5+(dw-3)*10+(self.duration-20)*(dw-4);
-//                }
-//                else {
-//                    self.modelW = minW+dw*5+(dw-2)*5+(dw-3)*10+40*(dw-4);
-//                }
-//                self.modelH = 30;
-//            }
-//            else if (self.msgType == WZMMessageTypeVideo) {
-//                [self handleImageSize];
-//                self.modelH = self.imgH;
-//                self.modelW = self.imgW;
-//            }
-//        }
-//    }
+    //缓存图片尺寸
+    func handleImageSize() {
+        let maxW = ceil(ADSInputHelper.sharedHelper.screenW()*0.32)*1.0
+        let maxH = ceil(ADSInputHelper.sharedHelper.screenW()*0.32)*1.0
+        let imgScale = self.imgW*1.0/self.imgH
+        let viewScale = maxW*1.0/maxH
+        
+        var w = 0.0
+        var h = 0.0
+        if imgScale > viewScale {
+            w = maxW
+            h = self.imgH*maxW*1.0/self.imgW
+        } else if imgScale < viewScale {
+            h = maxH
+            w = self.imgW*maxH*1.0/self.imgH
+        } else {
+            w = maxW
+            h = maxH
+        }
+        self.imgW = ceil(w)
+        self.imgH = ceil(h)+ceil(17.0/self.imgW*h-10)
+        if imgScale != viewScale {
+            if self.imgW > maxW {
+                h = self.imgH*maxW*1.0/self.imgW
+                self.imgW = maxW
+            }
+            if self.imgH > maxH {
+                w = self.imgW*maxH*1.0/self.imgH
+                h = maxH
+            }
+            self.imgW = ceil(w)
+            self.imgH = ceil(h)
+        }
+    }
+    
+    // MARK: - 消息的自定义处理
+    ///缓存model尺寸
+    func cacheModelSize() -> Void {
+        if self.modelH == -1 || self.modelW == -1 {
+            if self.msgType == .ADSMessageTypeSystem {
+                self.modelH = 20
+                self.modelW = Int(ADSInputHelper.sharedHelper.screenW())
+            }
+            else if self.msgType == .ADSMessageTypeText {
+                let options = NSStringDrawingOptions.usesFontLeading.union(.usesLineFragmentOrigin)
+                let size = self.attStr.boundingRect(with: CGSize.init(width: ADSInputHelper.sharedHelper.screenW() - 127, height: CGFloat.greatestFiniteMagnitude), options: options, context: nil).size
+                
+                self.modelH = Int(max(ceil(size.height), 30.0))
+                self.modelW = Int(max(ceil(size.width), 30.0))
+            }
+            else if self.msgType == .ADSMessageTypeImage {
+                self.handleImageSize()
+                self.modelH = Int(self.imgH)
+                self.modelW = Int(self.imgW)
+            }
+            else if (self.msgType == .ADSMessageTypeVoice) {
+                var minW = 60.0
+                var dw = 5.2
+                if ADSInputHelper.sharedHelper.screenW() > 375 {
+                    minW = 70.0
+                    dw = 5.6
+                }
+                if self.duration < 6 {
+                    self.modelW = Int(minW+self.duration*dw)
+                }
+                else if self.duration < 11 {
+                    self.modelW = Int(minW+dw*5.0+(self.duration-5)*(dw-2))
+                }
+                else if self.duration < 21 {
+                    self.modelW = Int(minW+dw*5+(dw-2)*5+(self.duration-10)*(dw-3))
+                }
+                else  if self.duration < 61 {
+                    self.modelW = Int(minW+dw*5+(dw-2)*5+(dw-3)*10+(self.duration-20)*(dw-4))
+                }
+                else {
+                    self.modelW = Int(minW+dw*5+(dw-2)*5+(dw-3)*10+40*(dw-4))
+                }
+                self.modelH = 30
+            }
+            else if (self.msgType == .ADSMessageTypeVideo) {
+                self.handleImageSize()
+                self.modelH = Int(self.imgH)
+                self.modelW = Int(self.imgW)
+            }
+        }
+        
+    }
+    
+        
 }

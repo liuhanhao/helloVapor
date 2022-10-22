@@ -21,8 +21,12 @@ class ADSEmoticonCell: UICollectionViewCell {
         fatalError("init(coder:) has not been implemented")
     }
     
-    func setConfig(image: String) {
-        self.emoticonImageView.image = ADSInputHelper.emoticonImageNamed(name: image)
+    func setConfig(image: String?) {
+        if image != nil {
+            self.emoticonImageView.image = ADSInputHelper.emoticonImageNamed(name: image!)
+        } else {
+            self.emoticonImageView.image = nil
+        }
     }
     
 }

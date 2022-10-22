@@ -20,8 +20,12 @@ class ADSEmojisCell: UICollectionViewCell {
         self.contentView.addSubview(self.emojisLabel)
     }
     
-    func setConfig(emojis: String) {
-        self.emojisLabel.text = emojis
+    func setConfig(emojis: String?) {
+        if emojis != nil {
+            self.emojisLabel.text = emojis!
+        } else {
+            self.emojisLabel.text = ""
+        }
     }
     
     required init?(coder: NSCoder) {

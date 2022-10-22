@@ -24,11 +24,11 @@ class WZMBaseInputView: UIView,UITextViewDelegate,UITextFieldDelegate {
     ///自定义键盘, 须子类使用方法传入
     var keyboards: [UIView] = []
     ///当前键盘类型
-    var type: ADSKeyboardType
+    var type: ADSKeyboardType = ADSKeyboardType.ADSKeyboardTypeIdle
     ///当前键盘索引, -1为z系统键盘
-    var keyboardIndex: Int
+    var keyboardIndex: Int = -1
     ///是否处于编辑状态, 自定义键盘模式也认定为编辑状态
-    var editing: Bool
+    var editing: Bool = false
     //获取/设置输入框字符串
     var text: String? {
         get {
@@ -65,8 +65,6 @@ class WZMBaseInputView: UIView,UITextViewDelegate,UITextFieldDelegate {
     
     func prepareInit() {
         self.startY = -1
-        self.editing = false
-        self.keyboardIndex = -1
         self.type = ADSKeyboardType.ADSKeyboardTypeIdle
         NotificationCenter.default.addObserver(self, selector: #selector(WZMBaseInputView.keyboardValueChange(notification:)), name: WZMBaseInputView.keyboardWillChangeFrameNotification, object: nil)
     }

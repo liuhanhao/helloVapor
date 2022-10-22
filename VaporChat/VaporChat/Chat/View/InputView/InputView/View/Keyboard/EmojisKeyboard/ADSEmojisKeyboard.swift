@@ -100,25 +100,179 @@ class ADSEmojisKeyboard: UIView, UICollectionViewDelegate, UICollectionViewDataS
 
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         let emoticons = self.emoticons[section]
+        return self.totalCount(count: emoticons.count)
     }
-    
+
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        <#code#>
+        if self.isDelete(index: indexPath.item) {
+            let cell: ADSDeleteCell = collectionView.dequeueReusableCell(withReuseIdentifier: "delete", for: indexPath) as! ADSDeleteCell
+            return cell
+        } else {
+            let emojis = emoticons[indexPath.section]
+            let index = self.trueIndex(index: indexPath.item)
+            if index < emojis.count {
+                if indexPath.section == self.emojisSection {
+                    //emojis表情
+                    let text = emojis[index]["key"]
+                    let cell: ADSEmojisCell = collectionView.dequeueReusableCell(withReuseIdentifier: "emojis", for: indexPath) as! ADSEmojisCell
+                    cell.setConfig(emojis: text)
+                    return cell
+                } else {
+                    //图片表情
+                    let dic = emojis[index]
+                    let cell: ADSEmoticonCell = collectionView.dequeueReusableCell(withReuseIdentifier: "emoticon", for: indexPath) as! ADSEmoticonCell
+                    cell.setConfig(image: dic["png"])
+                    return cell
+                }
+            }
+            else {
+                let cell: ADSBlankCell = collectionView.dequeueReusableCell(withReuseIdentifier: "blank", for: indexPath) as! ADSBlankCell
+                return cell
+            }
+        }
+    }
+
+    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        if self.isDelete(index: indexPath.item) {
+            self.delegate?.emojisKeyboardDidSelectDelete(emojisKeyboard: self)
+        } else {
+            let text = self.textWithIndexPath(indexPath: indexPath)
+            self.delegate?.emojisKeyboard(emojisKeyboard: self, didSelectText: text)
+            
+        }
     }
     
     @objc func toolBtnClick(btn: UIButton) {
         guard !btn.isSelected else {
             return
         }
-        
+        self.selectedBtn(btn: btn)
+        let index = self.totalPageBeforeSection(section: btn.tag)
+        self.collectionView?.setContentOffset(CGPoint.init(x: ADSInputHelper.sharedHelper.screenW() * CGFloat(index), y: 0), animated: false)
     }
-    
-    func <#name#>(<#parameters#>) -> <#return type#> {
-        <#function body#>
-    }
-    
+
     @objc func sendBtnClick(btn: UIButton) {
-        
+        self.delegate?.emojisKeyboardDidSelectSend(emojisKeyboard: self)
+    }
+    
+    func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
+        let index = scrollView.contentOffset.x / ADSInputHelper.sharedHelper.screenW()
+        let section = self.currectSection(index: Int(index))
+        let btn = btns[section]
+        if btn.isSelected {
+            return
+        }
+        self.selectedBtn(btn: btn)
+    }
+
+    
+    
+    func selectedBtn(btn: UIButton) {
+        self.selectedBtn?.isSelected = false
+        self.selectedBtn = btn
+        self.selectedBtn?.isSelected = true
+    }
+
+    func textWithIndexPath(indexPath: IndexPath) -> String {
+        if indexPath.section < emoticons.count {
+            if indexPath.section == emojisSection {
+                //emojis表情
+                let emojis = emoticons[indexPath.section]
+                let index = self.trueIndex(index: indexPath.item)
+                if index < emojis.count {
+                    if let a = emojis[index]["key"] {
+                        return a
+                    }
+                }
+            } else {
+                //图片表情
+                let emojis = emoticons[indexPath.section]
+                let index = self.trueIndex(index: indexPath.item)
+                if index < emojis.count {
+                    if let a = emojis[index]["chs"] {
+                        return a
+                    }
+                }
+            }
+        }
+        return ""
+    }
+    
+    //是否是删除键
+    func isDelete(index: Int) -> Bool {
+        let c = Emojis_Key_Rows * Emojis_Key_Nums
+        return ((index + 1) % c) == 0
+    }
+
+    //数组中的正确索引
+    func trueIndex(index: Int) -> Int {
+        let c = Emojis_Key_Rows * Emojis_Key_Nums
+        //已经加了的删除键个数
+        let count = (index+1)/c
+        return index - count
+    }
+
+    //区item总个数
+    func totalCount(count : Int) -> Int {
+        let c = Emojis_Key_Rows * Emojis_Key_Nums
+        //一共需要的删除键个数
+        let dc = ceil(CGFloat(count) * 1.0 / CGFloat(c-1))
+        return Int(dc * CGFloat(c))
+    }
+    
+    //区总页数
+    func totalPage(count : Int) -> Int {
+        let c = Emojis_Key_Rows * Emojis_Key_Nums
+        return Int(ceil(CGFloat(count) * 1.0 / CGFloat(c-1)))
+    }
+
+    //获取当前区数
+    func currectSection(index: Int) -> Int {
+        var lastPage = 0
+        for i in 0..<emoticons.count {
+            let emojis = emoticons[i]
+            if i == emojisSection {
+                lastPage = self.totalPage(count: emojis.count) + lastPage
+            } else {
+                //图片表情
+                lastPage = self.totalPage(count: emojis.count) + lastPage
+            }
+            if index < lastPage {
+                return i
+            }
+        }
+        return 0
+    }
+
+    //获取在当前区中的页数
+    func currectPage(index: Int) -> Int {
+        let page = self.currectSection(index: index)
+        var lastPage = 0
+        for i in 0..<page {
+            let emojis = emoticons[i]
+            if i == emojisSection {
+                lastPage = self.totalPage(count: emojis.count) + lastPage
+            } else {
+                //图片表情
+                lastPage = self.totalPage(count: emojis.count) + lastPage
+            }
+        }
+        return index-lastPage
+    }
+    
+    //指定区之前有多少页数
+    func totalPageBeforeSection(section: Int) -> Int {
+        var lastPage = 0
+        for i in 0..<section {
+            let emojis = emoticons[i]
+            if i == emojisSection {
+                lastPage = self.totalPage(count: emojis.count) + lastPage
+            } else {
+                //图片表情
+                lastPage = self.totalPage(count: emojis.count) + lastPage
+            }
+        }
+        return lastPage
     }
     
 }

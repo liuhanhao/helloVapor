@@ -92,8 +92,6 @@
 		3498BD5D28FF9A7900E8A521 /* Extension+String.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3498BD5C28FF9A7900E8A521 /* Extension+String.swift */; };
 		34B3464228D1901D00E30323 /* ADSInputBase64.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34B3464128D1901D00E30323 /* ADSInputBase64.swift */; };
 		34B3464B28D1CE2200E30323 /* Extension+ADSChat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34B3464A28D1CE2100E30323 /* Extension+ADSChat.swift */; };
-		34B3464F28D1CE3D00E30323 /* ADSChatHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34B3464E28D1CE3D00E30323 /* ADSChatHelper.swift */; };
-		34B3465128D1CE4500E30323 /* 3.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34B3465028D1CE4500E30323 /* 3.swift */; };
 		34B3465328D1CE5200E30323 /* ADSChatBaseModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34B3465228D1CE5200E30323 /* ADSChatBaseModel.swift */; };
 		34BB868628D0773400362FB9 /* JRefresh.bundle in Resources */ = {isa = PBXBuildFile; fileRef = 34BB867028D0773400362FB9 /* JRefresh.bundle */; };
 		34BB868728D0773400362FB9 /* UILabelExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34BB867128D0773400362FB9 /* UILabelExtension.swift */; };
@@ -149,6 +147,7 @@
 		34D2144428D34D86007A654C /* ADSChatGroupModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34D2144328D34D86007A654C /* ADSChatGroupModel.swift */; };
 		34D2144628D34D98007A654C /* ADSChatSessionModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34D2144528D34D98007A654C /* ADSChatSessionModel.swift */; };
 		34D2144828D35A50007A654C /* ADSChatObject.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34D2144728D35A50007A654C /* ADSChatObject.swift */; };
+		34F40B5729036ED200C81371 /* ADSChatHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34F40B5629036ED200C81371 /* ADSChatHelper.swift */; };
 		E19AF4E5CF1459B5417B6815 /* Pods_VaporChat.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 138864362D60C9E4F64446B4 /* Pods_VaporChat.framework */; };
 /* End PBXBuildFile section */
 
@@ -268,8 +267,6 @@
 		3498BD5C28FF9A7900E8A521 /* Extension+String.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Extension+String.swift"; sourceTree = "<group>"; };
 		34B3464128D1901D00E30323 /* ADSInputBase64.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADSInputBase64.swift; sourceTree = "<group>"; };
 		34B3464A28D1CE2100E30323 /* Extension+ADSChat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Extension+ADSChat.swift"; sourceTree = "<group>"; };
-		34B3464E28D1CE3D00E30323 /* ADSChatHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADSChatHelper.swift; sourceTree = "<group>"; };
-		34B3465028D1CE4500E30323 /* 3.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = 3.swift; sourceTree = "<group>"; };
 		34B3465228D1CE5200E30323 /* ADSChatBaseModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADSChatBaseModel.swift; sourceTree = "<group>"; };
 		34BB867028D0773400362FB9 /* JRefresh.bundle */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.plug-in"; path = JRefresh.bundle; sourceTree = "<group>"; };
 		34BB867128D0773400362FB9 /* UILabelExtension.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = UILabelExtension.swift; sourceTree = "<group>"; };
@@ -325,6 +322,7 @@
 		34D2144328D34D86007A654C /* ADSChatGroupModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADSChatGroupModel.swift; sourceTree = "<group>"; };
 		34D2144528D34D98007A654C /* ADSChatSessionModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADSChatSessionModel.swift; sourceTree = "<group>"; };
 		34D2144728D35A50007A654C /* ADSChatObject.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ADSChatObject.swift; sourceTree = "<group>"; };
+		34F40B5629036ED200C81371 /* ADSChatHelper.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ADSChatHelper.swift; sourceTree = "<group>"; };
 		B8EAA74D78FA7458CD0AECAD /* Pods-VaporChat.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-VaporChat.debug.xcconfig"; path = "Target Support Files/Pods-VaporChat/Pods-VaporChat.debug.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -675,10 +673,9 @@
 		34B3464328D1C78600E30323 /* Chat */ = {
 			isa = PBXGroup;
 			children = (
-				0CE249C128E0537000B92101 /* View */,
-				34B3464928D1C7DD00E30323 /* Common */,
-				34B3464428D1C7DD00E30323 /* Controller */,
 				34B3464628D1C7DD00E30323 /* Model */,
+				0CE249C128E0537000B92101 /* View */,
+				34B3464428D1C7DD00E30323 /* Controller */,
 			);
 			path = Chat;
 			sourceTree = "<group>";
@@ -686,17 +683,9 @@
 		34B3464428D1C7DD00E30323 /* Controller */ = {
 			isa = PBXGroup;
 			children = (
-				34B3464528D1C7DD00E30323 /* View */,
+				34F40B5529036ED200C81371 /* Common */,
 			);
 			path = Controller;
-			sourceTree = "<group>";
-		};
-		34B3464528D1C7DD00E30323 /* View */ = {
-			isa = PBXGroup;
-			children = (
-				34B3465028D1CE4500E30323 /* 3.swift */,
-			);
-			path = View;
 			sourceTree = "<group>";
 		};
 		34B3464628D1C7DD00E30323 /* Model */ = {
@@ -709,14 +698,6 @@
 				3440201B28D35FBC0098B270 /* ADSChatMessageModel.swift */,
 			);
 			path = Model;
-			sourceTree = "<group>";
-		};
-		34B3464928D1C7DD00E30323 /* Common */ = {
-			isa = PBXGroup;
-			children = (
-				34B3464E28D1CE3D00E30323 /* ADSChatHelper.swift */,
-			);
-			path = Common;
 			sourceTree = "<group>";
 		};
 		34BB866F28D0773400362FB9 /* JRefresh */ = {
@@ -884,6 +865,14 @@
 				34BB86EA28D0A75D00362FB9 /* WZMEmoticon.bundle */,
 			);
 			path = Resource;
+			sourceTree = "<group>";
+		};
+		34F40B5529036ED200C81371 /* Common */ = {
+			isa = PBXGroup;
+			children = (
+				34F40B5629036ED200C81371 /* ADSChatHelper.swift */,
+			);
+			path = Common;
 			sourceTree = "<group>";
 		};
 		FC354682EE87900B82645916 /* Frameworks */ = {
@@ -1072,7 +1061,6 @@
 				348BE41328D04E0E008E30CE /* ViewController.swift in Sources */,
 				0CE249DE28E0537000B92101 /* ADSRecordAnimation.swift in Sources */,
 				348BE49928D07646008E30CE /* UIView+TSExtension.swift in Sources */,
-				34B3465128D1CE4500E30323 /* 3.swift in Sources */,
 				348BE4B928D07646008E30CE /* Data+TSExtension.swift in Sources */,
 				348BE4AD28D07646008E30CE /* UserDefaults+TSArchiveData.swift in Sources */,
 				34BB86CA28D09BD300362FB9 /* Arek.swift in Sources */,
@@ -1100,9 +1088,9 @@
 				348BE49B28D07646008E30CE /* UIImage+TSRoundedCorner.swift in Sources */,
 				348BE4C228D07646008E30CE /* String+TSExtension.swift in Sources */,
 				34BB868828D0773400362FB9 /* UIViewExtension.swift in Sources */,
-				34B3464F28D1CE3D00E30323 /* ADSChatHelper.swift in Sources */,
 				0CE249E528E0537000B92101 /* ADSMoreKeyboard.swift in Sources */,
 				348BE49428D07646008E30CE /* UILabel+TSExtension.swift in Sources */,
+				34F40B5729036ED200C81371 /* ADSChatHelper.swift in Sources */,
 				34D2144428D34D86007A654C /* ADSChatGroupModel.swift in Sources */,
 				34BB86D828D09BD300362FB9 /* ArekCloudKit.swift in Sources */,
 				34BB868928D0773400362FB9 /* UIScrollViewRefresh.swift in Sources */,

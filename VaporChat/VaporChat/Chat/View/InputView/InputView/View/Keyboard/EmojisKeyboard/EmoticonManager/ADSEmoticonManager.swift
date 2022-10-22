@@ -41,7 +41,12 @@ class ADSEmoticonManager: NSObject {
         let emojisDic = NSDictionary.init(contentsOfFile: emojisPath!)
         let emojis = emojisDic?["Default"];
         if emojis != nil {
-            emoticons.append(emojis as! [[String : String]])
+            // 这里面装的是 字符串
+            var dict: [String : String] = [:]
+            for item in emojis as! Array<String> {
+                dict["key"] = item
+            }
+            emoticons.append([dict])
         }
         
         for item in array1 {
