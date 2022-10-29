@@ -6,12 +6,11 @@
 //
 
 import Foundation
-import ObjectMapper
 
 /*
 想要Swift类支持runtime 就必须继承自NSObject  并且在属性或者方法前面加上@objc
 */
-@objcMembers class ADSChatBaseModel: NSObject, NSCoding, Mappable {
+@objcMembers class ADSChatBaseModel: NSObject, NSCoding {
     
     override init() {
         super.init()
@@ -154,23 +153,5 @@ import ObjectMapper
         return nil
     }
     
-    required init?(map: Map) {
-//        // 检查 JSON 里是否有一定要有的 "name" 属性
-//        if map.JSON["name"] == nil {
-//            return nil
-//        }
-    }
-
-    // Mappable
-    func mapping(map: Map) { // 支持点语法
-//        username    <- map["username"]
-//        age         <- map["age"]
-//        weight      <- map["weight.head"]
-//        array       <- map["arr"]
-//        dictionary  <- map["dict"]
-//        bestFriend  <- map["best_friend"]
-//        friends     <- map["friends"]
-//        birthday    <- (map["birthday"], DateTransform())
-    }
     
 }

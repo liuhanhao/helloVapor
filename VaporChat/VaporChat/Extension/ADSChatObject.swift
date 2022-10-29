@@ -30,3 +30,9 @@ extension NSObject {
     
 }
 
+/////对象转换为字典
+//+ (NSDictionary *)chat_dictionaryFromModel:(id)model;
+/////获取类的所有属性名称与类型
+//+ (NSArray *)chat_allPropertyNameInClass:(Class)cls;
+//+ (NSDictionary *)chat_allPropertyNameInClass2:(Class)cls;
+//+ (NSDictionary *)chat_allPropertyNameInClass3:(Class)cls;

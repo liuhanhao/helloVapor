@@ -6,7 +6,7 @@
 //
 
 import UIKit
-import ObjectMapper
+import SQLite
 
 /*
  // MARK: - 生成分隔线
@@ -34,23 +34,23 @@ enum ADSMessageSendType: Int {
     ///消息id
     var mid: String = String(format:"%.f", ADSChatHelper.nowTimestamp())
     ///发送人id
-    var uid: String?
+    var uid: String = ""
     ///发送人昵称
-    var name: String?
+    var name: String = ""
     ///发送人头像
-    var avatar: String?
+    var avatar: String = ""
     ///文本内容
     var message: String = ""
     ///是否是自己发送
-    var sender: Bool?
+    var sender: Bool = false
     ///是否已读
-    var read: Bool?
+    var read: Bool = false
     ///消息发送时间戳 <该字段参与数据排序, 不要修改字段名, 为了避开数据库关键字, 故意拼错>
-    var timestmp: Int?
+    var timestmp: Int = 0
     ///消息类型
-    var msgType: ADSMessageType?
+    var msgType: ADSMessageType = ADSMessageType.ADSMessageTypeSystem
     ///消息发送结果
-    var sendType: ADSMessageSendType?
+    var sendType: ADSMessageSendType = ADSMessageSendType.WZMMessageSendTypeWaiting
     ///缓存model宽, 优化列表滑动
     var modelW: Int = -1
     ///缓存model高, 优化列表滑动
@@ -58,23 +58,23 @@ enum ADSMessageSendType: Int {
     
     // TODO: 图片消息
     //图片宽高
-    var imgW: CGFloat = 1.0
-    var imgH: CGFloat = 1.0
+    var imgW: Double = 1.0
+    var imgH: Double = 1.0
     //原图和缩略图
-    var original: String?
-    var thumbnail: String?
+    var original: String = ""
+    var thumbnail: String = ""
     
     // TODO: 声音消息
     //声音地址
-    var voiceUrl: String?
+    var voiceUrl: String = ""
     //声音时长
-    var duration: CGFloat = 0.0
+    var duration: Double = 0.0
     
     // TODO: 视频消息
     //视频地址
-    var videoUrl: String?
+    var videoUrl: String = ""
     //视频封面地址
-    var coverUrl: String?
+    var coverUrl: String = ""
     
     lazy var attStr = {
         var style: NSMutableParagraphStyle = NSMutableParagraphStyle.init()
@@ -87,21 +87,12 @@ enum ADSMessageSendType: Int {
         return att
     }()
     
-    required init?(map: Map) {
-        super.init(map: map)
-        //        // 检查 JSON 里是否有一定要有的 "name" 属性
-        //        if map.JSON["name"] == nil {
-        //            return nil
-        //        }
+    override init() {
+        super.init()
     }
     
     required init?(coder: NSCoder) {
         super.init(coder: coder)
-    }
-    
-    // Mappable
-    override func mapping(map: Map) { // 支持点语法
-        super.mapping(map: map)
     }
     
     //缓存图片尺寸
@@ -191,6 +182,236 @@ enum ADSMessageSendType: Int {
         }
         
     }
-    
         
+}
+
+
+struct ChatMessageModelTable {
+    private var table: Table!
+    private var db: Connection!
+    private let id = Expression<Int>("id") // 主键
+    private let mid = Expression<String>("mid") ///消息id
+    private let uid = Expression<String>("uid") ///发送人id
+    private let name = Expression<String>("name")
+    private let avatar = Expression<String>("avatar")
+    private let message = Expression<String>("message")
+    private let sender = Expression<Bool>("sender")
+    private let read = Expression<Bool>("read")
+    private let timestmp = Expression<Int>("timestmp")
+    private let msgType = Expression<Int>("msgType")
+    private let sendType = Expression<Int>("sendType")
+    private let modelW = Expression<Int>("modelW")
+    private let modelH = Expression<Int>("modelH")
+    private let imgW = Expression<Double>("imgW")
+    private let imgH = Expression<Double>("imgH")
+    private let original = Expression<String>("original")
+    private let thumbnail = Expression<String>("thumbnail")
+    private let voiceUrl = Expression<String>("voiceUrl")
+    private let duration = Expression<Double>("duration")
+    private let videoUrl = Expression<String>("videoUrl")
+    private let coverUrl = Expression<String>("coverUrl")
+    
+    // 一个好友一张表
+    init(messageId: String) {
+        let tableName = messageId + "MessageTable"
+        table  = Table(tableName) //表名
+        createdsqlite3(tableName: tableName)
+    }
+    
+    // 创建数据库文件
+    mutating func createdsqlite3(tableName: String) {
+        // 设置数据库路径
+        let sqlFilePath = NSHomeDirectory() + "/Documents/" + tableName + ".sqlite3"
+        do {
+            db = try Connection(sqlFilePath) // 连接数据库
+            // 创建表
+            try db.run(table.create(block: { (table) in
+                table.column(id, primaryKey: true)
+                table.column(mid)
+                table.column(uid)
+                table.column(name)
+                table.column(avatar)
+                table.column(message)
+                table.column(sender)
+                table.column(read)
+                table.column(timestmp)
+                table.column(msgType)
+                table.column(sendType)
+                table.column(modelW)
+                table.column(modelH)
+                table.column(imgW)
+                table.column(imgH)
+                table.column(original)
+                table.column(thumbnail)
+                table.column(voiceUrl)
+                table.column(duration)
+                table.column(videoUrl)
+                table.column(coverUrl)
+            }))
+        } catch {
+            print("创建数据库出错: \(error)")
+        }
+    }
+    
+    // 添加一条信息
+    func insertMessageModel(messageModel: ADSChatMessageModel) {
+        // 用户信息中没有ID就不存入数据库(被列为无效用户)
+        guard messageModel.mid.count > 0 else {
+            print("没有ID信息,视为无效用户")
+            return;
+        }
+        // 查找数据库中是否有该用户,如果有则执行修改操作
+        guard readMessageModel(messageId: messageModel.mid) == nil else {
+            print("已存在改用户,接下来更新此用户数据")
+            updateMessageModel(messageId: messageModel.mid, messageModel: messageModel)
+            return
+        }
+        let insert = table.insert(mid <- messageModel.mid,
+                                  uid <- messageModel.uid,
+                                  name <- messageModel.name,
+                                  avatar <- messageModel.avatar,
+                                  message <- messageModel.message,
+                                  sender <- messageModel.sender,
+                                  read <- messageModel.read,
+                                  timestmp <- messageModel.timestmp,
+                                  msgType <- messageModel.msgType.rawValue,
+                                  sendType <- messageModel.sendType.rawValue,
+                                  modelW <- messageModel.modelW,
+                                  modelH <- messageModel.modelH,
+                                  imgW <- messageModel.imgW,
+                                  imgH <- messageModel.imgH,
+                                  original <- messageModel.original,
+                                  thumbnail <- messageModel.thumbnail,
+                                  voiceUrl <- messageModel.voiceUrl,
+                                  duration <- messageModel.duration,
+                                  videoUrl <- messageModel.videoUrl,
+                                  coverUrl <- messageModel.coverUrl)
+        
+        do {
+            let num = try db.run(insert)
+            print("insertUser\(num)")
+        } catch {
+            print("增加用户到数据库出错: \(error)")
+        }
+        
+    }
+    
+    // 删除指定用户信息
+    func deleteMessageModel(messageId: String) {
+        let currUser = table.filter(mid == messageId)
+        do {
+            let num = try db.run(currUser.delete())
+            print("deleteUser\(num)")
+        } catch {
+            print("删除用户信息出错: \(error)")
+        }
+    }
+    
+    // 更新指定用户信息
+    func updateMessageModel(messageId: String, messageModel: ADSChatMessageModel) {
+        let currUser = table.filter(mid == messageId)
+        let update = currUser.update(mid <- messageModel.mid,
+                                     uid <- messageModel.uid,
+                                     name <- messageModel.name,
+                                     avatar <- messageModel.avatar,
+                                     message <- messageModel.message,
+                                     sender <- messageModel.sender,
+                                     read <- messageModel.read,
+                                     timestmp <- messageModel.timestmp,
+                                     msgType <- messageModel.msgType.rawValue,
+                                     sendType <- messageModel.sendType.rawValue,
+                                     modelW <- messageModel.modelW,
+                                     modelH <- messageModel.modelH,
+                                     imgW <- messageModel.imgW,
+                                     imgH <- messageModel.imgH,
+                                     original <- messageModel.original,
+                                     thumbnail <- messageModel.thumbnail,
+                                     voiceUrl <- messageModel.voiceUrl,
+                                     duration <- messageModel.duration,
+                                     videoUrl <- messageModel.videoUrl,
+                                     coverUrl <- messageModel.coverUrl)
+        do {
+            let num = try db.run(update)
+            print("updateUser\(num)")
+        } catch {
+            print("updateUser\(error)")
+        }
+    }
+    
+    // 查询指定用户信息
+    func readMessageModel(messageId: String) -> ADSChatMessageModel? {
+        let messageModel: ADSChatMessageModel = ADSChatMessageModel.init()
+        for messageM in try! db.prepare(table) {
+            if messageM[mid] == messageId {
+                messageModel.mid = messageM[mid]
+                messageModel.uid = messageM[uid]
+                messageModel.name = messageM[name]
+                messageModel.avatar = messageM[avatar]
+                messageModel.message = messageM[message]
+                messageModel.sender = messageM[sender]
+                messageModel.read = messageM[read]
+                messageModel.timestmp = messageM[timestmp]
+                messageModel.msgType = ADSMessageType.init(rawValue: messageM[msgType])!
+                messageModel.sendType = ADSMessageSendType.init(rawValue: messageM[sendType])!
+                messageModel.modelW = messageM[modelW]
+                messageModel.modelH = messageM[modelH]
+                messageModel.imgW = messageM[imgW]
+                messageModel.imgH = messageM[imgH]
+                messageModel.original = messageM[original]
+                messageModel.thumbnail = messageM[thumbnail]
+                messageModel.voiceUrl = messageM[voiceUrl]
+                messageModel.duration = messageM[duration]
+                messageModel.videoUrl = messageM[videoUrl]
+                messageModel.coverUrl = messageM[coverUrl]
+                return messageModel
+            }
+        }
+        return nil
+    }
+    
+    // 查询所有用户信息
+    func readAllMessageModels() -> [ADSChatMessageModel]? {
+        var usersArr: [ADSChatMessageModel] = [ADSChatMessageModel]()
+        let messageModel: ADSChatMessageModel = ADSChatMessageModel()
+        for messageM in try! db.prepare(table) {
+            messageModel.mid = messageM[mid]
+            messageModel.uid = messageM[uid]
+            messageModel.name = messageM[name]
+            messageModel.avatar = messageM[avatar]
+            messageModel.message = messageM[message]
+            messageModel.sender = messageM[sender]
+            messageModel.read = messageM[read]
+            messageModel.timestmp = messageM[timestmp]
+            messageModel.msgType = ADSMessageType.init(rawValue: messageM[msgType])!
+            messageModel.sendType = ADSMessageSendType.init(rawValue: messageM[sendType])!
+            messageModel.modelW = messageM[modelW]
+            messageModel.modelH = messageM[modelH]
+            messageModel.imgW = messageM[imgW]
+            messageModel.imgH = messageM[imgH]
+            messageModel.original = messageM[original]
+            messageModel.thumbnail = messageM[thumbnail]
+            messageModel.voiceUrl = messageM[voiceUrl]
+            messageModel.duration = messageM[duration]
+            messageModel.videoUrl = messageM[videoUrl]
+            messageModel.coverUrl = messageM[coverUrl]
+            usersArr.append(messageModel)
+        }
+        return usersArr
+    }
+    
+    // 事务的写法
+    func transaction(messageId: String) -> ADSChatMessageModel? {
+        
+        var model:ADSChatMessageModel? = nil
+        do {
+            try db.transaction {
+                model = self.readMessageModel(messageId: messageId)
+            }
+        }
+        catch {
+            print("updateUser\(error)")
+        }
+        
+        return model
+    }
 }

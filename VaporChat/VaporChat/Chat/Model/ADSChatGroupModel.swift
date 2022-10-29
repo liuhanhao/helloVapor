@@ -6,22 +6,26 @@
 //
 
 import UIKit
-import ObjectMapper
+import SQLite
 
 @objcMembers class ADSChatGroupModel: ADSChatBaseModel {
 
     ///用户id
-    var uid: String?
+    var uid: String = ""
     ///用户昵称
-    var name: String?
+    var name: String = ""
     ///用户头像 http://sqb.wowozhe.com/images/home/wx_appicon.png
-    var avatar: String?
+    var avatar: String = ""
     ///聊天界面是否显示用户昵称
     var showName: Bool = false
-    // 群成员 成员ID 成员名称 成员头像
-    var members: [[String:String]]?
+    /// 群成员 成员ID 成员名称 成员头像
+    var members: [[String:String]] = []
     
-    init(uid: String, name: String, avatar: String, showName: Bool = false, members: [[String:String]]?) {
+    override init() {
+        super.init()
+    }
+    
+    init(uid: String, name: String, avatar: String, showName: Bool = false, members: [[String:String]]) {
         super.init()
         self.uid = uid
         self.name = name
@@ -29,27 +33,130 @@ import ObjectMapper
         self.showName = showName
         self.members = members
     }
-    
-    required init?(map: Map) {
-        super.init(map: map)
-//        // 检查 JSON 里是否有一定要有的 "name" 属性
-//        if map.JSON["name"] == nil {
-//            return nil
-//        }
-    }
 
     required init?(coder: NSCoder) {
         super.init(coder: coder)
     }
+
     
-    // Mappable
-    override func mapping(map: Map) { // 支持点语法
-        super.mapping(map: map)
-        uid         <- map["uid"]
-        name        <- map["name"]
-        avatar      <- map["avatar"]
-        showName    <- map["showName"]
-        members     <- map["members"]
+}
+
+struct ChatGroupModelTable {
+    private var db: Connection!
+    private let table = Table("ChatGroupModelTable") //表名
+    private let id = Expression<Int>("id") // 主键
+    private let uid = Expression<String>("uid")
+    private let name = Expression<String>("name")
+    private let avatar = Expression<String>("avatar")
+    private let showName = Expression<Bool>("showName")
+    private let members = Expression<String>("members")
+    
+    init() {
+        createdsqlite3()
     }
-    
+
+    // 创建数据库文件
+    mutating func createdsqlite3() {
+        // 设置数据库路径
+        let sqlFilePath = NSHomeDirectory() + "/Documents/ChatGroupModelTable.sqlite3"
+        do {
+            db = try Connection(sqlFilePath) // 连接数据库
+            // 创建表
+            try db.run(table.create(block: { (table) in
+                table.column(id, primaryKey: true)
+                table.column(uid)
+                table.column(name)
+                table.column(avatar)
+                table.column(showName)
+                table.column(members)
+            }))
+        } catch {
+            print("创建数据库出错: \(error)")
+        }
+    }
+
+    // 添加用户信息
+    func insertGroup(groupModel: ADSChatGroupModel) {
+        // 用户信息中没有ID就不存入数据库(被列为无效用户)
+        guard groupModel.uid.count > 0 else {
+            print("没有ID信息,视为无效用户")
+            return;
+        }
+        // 查找数据库中是否有该用户,如果有则执行修改操作
+        guard readGroup(groupId: groupModel.uid) == nil else {
+            print("已存在改用户,接下来更新此用户数据")
+            updateGroup(groupId: groupModel.uid, groupModel: groupModel)
+            return
+        }
+        let insert = table.insert(uid <- groupModel.uid,
+                                  name <- groupModel.name,
+                                  avatar <- groupModel.avatar,
+                                  showName <- groupModel.showName)
+
+        do {
+            let num = try db.run(insert)
+            print("insertUser\(num)")
+        } catch {
+            print("增加用户到数据库出错: \(error)")
+        }
+
+    }
+
+    // 删除指定用户信息
+    func deleteGroup(userId: String) {
+        let currGroup = table.filter(uid == userId)
+        do {
+            let num = try db.run(currGroup.delete())
+            print("deleteUser\(num)")
+        } catch {
+            print("删除用户信息出错: \(error)")
+        }
+    }
+
+    // 更新指定用户信息
+    func updateGroup(groupId: String, groupModel: ADSChatGroupModel) {
+        let currGroup = table.filter(uid == groupId)
+        let update = currGroup.update(uid <- groupModel.uid,
+                                      name <- groupModel.name,
+                                      avatar <- groupModel.avatar,
+                                      showName <- groupModel.showName)
+        do {
+            let num = try db.run(update)
+            print("updateUser\(num)")
+        } catch {
+            print("updateUser\(error)")
+        }
+    }
+
+    // 查询指定用户信息
+    func readGroup(groupId: String) -> ADSChatGroupModel? {
+        var groupModel: ADSChatGroupModel = ADSChatGroupModel.init()
+        for group in try! db.prepare(table) {
+            if group[uid] == groupId {
+                groupModel.uid = group[uid]
+                groupModel.name = group[name]
+                groupModel.avatar = group[avatar]
+                groupModel.showName = group[showName]
+//                groupModel.showName = group[showName]
+                return groupModel
+            }
+        }
+        return nil
+    }
+
+    // 查询所有用户信息
+    func readAllGroups() -> [ADSChatGroupModel]? {
+        var groupsArr: [ADSChatGroupModel] = [ADSChatGroupModel]()
+        var groupModel: ADSChatGroupModel = ADSChatGroupModel()
+        for group in try! db.prepare(table) {
+            groupModel.uid = group[uid]
+            groupModel.name = group[name]
+            groupModel.avatar = group[avatar]
+            groupModel.showName = group[showName]
+//            groupModel.members = group[members]
+            groupsArr.append(groupModel)
+        }
+        return groupsArr
+    }
+
 }

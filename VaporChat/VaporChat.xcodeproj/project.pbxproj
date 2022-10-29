@@ -147,6 +147,14 @@
 		34D2144428D34D86007A654C /* ADSChatGroupModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34D2144328D34D86007A654C /* ADSChatGroupModel.swift */; };
 		34D2144628D34D98007A654C /* ADSChatSessionModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34D2144528D34D98007A654C /* ADSChatSessionModel.swift */; };
 		34D2144828D35A50007A654C /* ADSChatObject.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34D2144728D35A50007A654C /* ADSChatObject.swift */; };
+		34F002C12909451100815C2F /* WZMChatDBManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34F002C02909451100815C2F /* WZMChatDBManager.swift */; };
+		34F002C32909452000815C2F /* WZMChatSqliteManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34F002C22909452000815C2F /* WZMChatSqliteManager.swift */; };
+		34F002C52909453000815C2F /* WZMChatMessageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34F002C42909453000815C2F /* WZMChatMessageManager.swift */; };
+		34F002C72909453E00815C2F /* WZMChatNotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34F002C62909453E00815C2F /* WZMChatNotificationManager.swift */; };
+		34F002CF2909463C00815C2F /* WZMSessionViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34F002CE2909463C00815C2F /* WZMSessionViewController.swift */; };
+		34F002D12909465A00815C2F /* WZMSessionTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34F002D02909465A00815C2F /* WZMSessionTableViewCell.swift */; };
+		34F002D329094E5600815C2F /* WZMUserTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34F002D229094E5600815C2F /* WZMUserTableViewCell.swift */; };
+		34F002D529094E6900815C2F /* WZMUserViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34F002D429094E6900815C2F /* WZMUserViewController.swift */; };
 		34F40B5729036ED200C81371 /* ADSChatHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34F40B5629036ED200C81371 /* ADSChatHelper.swift */; };
 		E19AF4E5CF1459B5417B6815 /* Pods_VaporChat.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 138864362D60C9E4F64446B4 /* Pods_VaporChat.framework */; };
 /* End PBXBuildFile section */
@@ -322,6 +330,14 @@
 		34D2144328D34D86007A654C /* ADSChatGroupModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADSChatGroupModel.swift; sourceTree = "<group>"; };
 		34D2144528D34D98007A654C /* ADSChatSessionModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADSChatSessionModel.swift; sourceTree = "<group>"; };
 		34D2144728D35A50007A654C /* ADSChatObject.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ADSChatObject.swift; sourceTree = "<group>"; };
+		34F002C02909451100815C2F /* WZMChatDBManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WZMChatDBManager.swift; sourceTree = "<group>"; };
+		34F002C22909452000815C2F /* WZMChatSqliteManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WZMChatSqliteManager.swift; sourceTree = "<group>"; };
+		34F002C42909453000815C2F /* WZMChatMessageManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WZMChatMessageManager.swift; sourceTree = "<group>"; };
+		34F002C62909453E00815C2F /* WZMChatNotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WZMChatNotificationManager.swift; sourceTree = "<group>"; };
+		34F002CE2909463C00815C2F /* WZMSessionViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WZMSessionViewController.swift; sourceTree = "<group>"; };
+		34F002D02909465A00815C2F /* WZMSessionTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WZMSessionTableViewCell.swift; sourceTree = "<group>"; };
+		34F002D229094E5600815C2F /* WZMUserTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WZMUserTableViewCell.swift; sourceTree = "<group>"; };
+		34F002D429094E6900815C2F /* WZMUserViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WZMUserViewController.swift; sourceTree = "<group>"; };
 		34F40B5629036ED200C81371 /* ADSChatHelper.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ADSChatHelper.swift; sourceTree = "<group>"; };
 		B8EAA74D78FA7458CD0AECAD /* Pods-VaporChat.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-VaporChat.debug.xcconfig"; path = "Target Support Files/Pods-VaporChat/Pods-VaporChat.debug.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -517,6 +533,8 @@
 				348BE40E28D04E0E008E30CE /* AppDelegate.swift */,
 				348BE41028D04E0E008E30CE /* SceneDelegate.swift */,
 				348BE41228D04E0E008E30CE /* ViewController.swift */,
+				34F002C9290945DE00815C2F /* Session */,
+				34F002C8290945BA00815C2F /* Friend */,
 				34B3464328D1C78600E30323 /* Chat */,
 				34BB86E628D0A75D00362FB9 /* Resource */,
 				348BE41428D04E0E008E30CE /* Main.storyboard */,
@@ -867,10 +885,64 @@
 			path = Resource;
 			sourceTree = "<group>";
 		};
+		34F002C8290945BA00815C2F /* Friend */ = {
+			isa = PBXGroup;
+			children = (
+				34F002CB2909460A00815C2F /* Controller */,
+				34F002CA2909460A00815C2F /* View */,
+			);
+			path = Friend;
+			sourceTree = "<group>";
+		};
+		34F002C9290945DE00815C2F /* Session */ = {
+			isa = PBXGroup;
+			children = (
+				34F002CC2909462300815C2F /* Controller */,
+				34F002CD2909462300815C2F /* View */,
+			);
+			path = Session;
+			sourceTree = "<group>";
+		};
+		34F002CA2909460A00815C2F /* View */ = {
+			isa = PBXGroup;
+			children = (
+				34F002D02909465A00815C2F /* WZMSessionTableViewCell.swift */,
+			);
+			path = View;
+			sourceTree = "<group>";
+		};
+		34F002CB2909460A00815C2F /* Controller */ = {
+			isa = PBXGroup;
+			children = (
+				34F002CE2909463C00815C2F /* WZMSessionViewController.swift */,
+			);
+			path = Controller;
+			sourceTree = "<group>";
+		};
+		34F002CC2909462300815C2F /* Controller */ = {
+			isa = PBXGroup;
+			children = (
+				34F002D429094E6900815C2F /* WZMUserViewController.swift */,
+			);
+			path = Controller;
+			sourceTree = "<group>";
+		};
+		34F002CD2909462300815C2F /* View */ = {
+			isa = PBXGroup;
+			children = (
+				34F002D229094E5600815C2F /* WZMUserTableViewCell.swift */,
+			);
+			path = View;
+			sourceTree = "<group>";
+		};
 		34F40B5529036ED200C81371 /* Common */ = {
 			isa = PBXGroup;
 			children = (
 				34F40B5629036ED200C81371 /* ADSChatHelper.swift */,
+				34F002C02909451100815C2F /* WZMChatDBManager.swift */,
+				34F002C22909452000815C2F /* WZMChatSqliteManager.swift */,
+				34F002C42909453000815C2F /* WZMChatMessageManager.swift */,
+				34F002C62909453E00815C2F /* WZMChatNotificationManager.swift */,
 			);
 			path = Common;
 			sourceTree = "<group>";
@@ -1042,6 +1114,8 @@
 				348BE4C028D07646008E30CE /* CGSize+TSExtension.swift in Sources */,
 				348BE4AC28D07646008E30CE /* UITableView+TSExtension.swift in Sources */,
 				348BE4BC28D07646008E30CE /* NSString+TSExtension.swift in Sources */,
+				34F002C12909451100815C2F /* WZMChatDBManager.swift in Sources */,
+				34F002C32909452000815C2F /* WZMChatSqliteManager.swift in Sources */,
 				348410EB28FD67C300E369C5 /* WZMBaseInputView.swift in Sources */,
 				0CE249E828E0539C00B92101 /* ADSInputView.swift in Sources */,
 				34BB86E228D09BD300362FB9 /* ArekNotifications.swift in Sources */,
@@ -1070,6 +1144,7 @@
 				348BE49828D07646008E30CE /* UIView+TSFrame.swift in Sources */,
 				34BB86CC28D09BD300362FB9 /* ArekLocalizationManager.swift in Sources */,
 				348BE4B228D07646008E30CE /* IndexSet+TSExtension.swift in Sources */,
+				34F002C52909453000815C2F /* WZMChatMessageManager.swift in Sources */,
 				348BE4BD28D07646008E30CE /* Double+TSExtension.swift in Sources */,
 				34BB86D628D09BD300362FB9 /* ArekBaseLocationDelegate.swift in Sources */,
 				348BE4B428D07646008E30CE /* NSRange+TSExtension.swift in Sources */,
@@ -1087,23 +1162,27 @@
 				348BE48F28D07646008E30CE /* UITableView+TSiOS7SettingStyle.swift in Sources */,
 				348BE49B28D07646008E30CE /* UIImage+TSRoundedCorner.swift in Sources */,
 				348BE4C228D07646008E30CE /* String+TSExtension.swift in Sources */,
+				34F002D529094E6900815C2F /* WZMUserViewController.swift in Sources */,
 				34BB868828D0773400362FB9 /* UIViewExtension.swift in Sources */,
 				0CE249E528E0537000B92101 /* ADSMoreKeyboard.swift in Sources */,
 				348BE49428D07646008E30CE /* UILabel+TSExtension.swift in Sources */,
 				34F40B5729036ED200C81371 /* ADSChatHelper.swift in Sources */,
 				34D2144428D34D86007A654C /* ADSChatGroupModel.swift in Sources */,
 				34BB86D828D09BD300362FB9 /* ArekCloudKit.swift in Sources */,
+				34F002CF2909463C00815C2F /* WZMSessionViewController.swift in Sources */,
 				34BB868928D0773400362FB9 /* UIScrollViewRefresh.swift in Sources */,
 				348BE4AA28D07646008E30CE /* UIScrollView+TSExtension.swift in Sources */,
 				348BE4BA28D07646008E30CE /* Timer+TSBlock.swift in Sources */,
 				0CE249EA28E0546A00B92101 /* ADSEmojisKeyboard.swift in Sources */,
 				348BE45028D055D7008E30CE /* Extension+NSTimer.swift in Sources */,
 				348BE4A328D07646008E30CE /* UICollectionView+TSExtension.swift in Sources */,
+				34F002C72909453E00815C2F /* WZMChatNotificationManager.swift in Sources */,
 				34BB86E328D09BD300362FB9 /* ArekSiri.swift in Sources */,
 				348BE4A728D07646008E30CE /* UIDevice+TSExtension.swift in Sources */,
 				348BE4B528D07646008E30CE /* NSObject+TSExtension.swift in Sources */,
 				34D2144828D35A50007A654C /* ADSChatObject.swift in Sources */,
 				0CE249E128E0537000B92101 /* ADSEmojisCell.swift in Sources */,
+				34F002D329094E5600815C2F /* WZMUserTableViewCell.swift in Sources */,
 				0CE249E428E0537000B92101 /* ADSBlankCell.swift in Sources */,
 				34BB86CD28D09BD300362FB9 /* ArekPopupStyle.swift in Sources */,
 				34BB86D128D09BD300362FB9 /* ArekCamera.swift in Sources */,
@@ -1160,6 +1239,7 @@
 				0CE249E328E0537000B92101 /* ADSEmoticonCell.swift in Sources */,
 				348BE49328D07646008E30CE /* UICollectionView+TSGeneric.swift in Sources */,
 				348BE49028D07646008E30CE /* UIImage+TSLaunchImage.swift in Sources */,
+				34F002D12909465A00815C2F /* WZMSessionTableViewCell.swift in Sources */,
 				348BE4AE28D07646008E30CE /* FileManager+TSExtension.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
