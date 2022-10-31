@@ -21,10 +21,10 @@
 		0CE249E828E0539C00B92101 /* ADSInputView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CE249E728E0539C00B92101 /* ADSInputView.swift */; };
 		0CE249EA28E0546A00B92101 /* ADSEmojisKeyboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CE249E928E0546A00B92101 /* ADSEmojisKeyboard.swift */; };
 		3440201C28D35FBC0098B270 /* ADSChatMessageModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3440201B28D35FBC0098B270 /* ADSChatMessageModel.swift */; };
+		345C4A3A290FAAEF00A277B5 /* WZMChatViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 345C4A39290FAAEF00A277B5 /* WZMChatViewController.swift */; };
 		348410EB28FD67C300E369C5 /* WZMBaseInputView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 348410EA28FD67C300E369C5 /* WZMBaseInputView.swift */; };
 		348BE40F28D04E0E008E30CE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 348BE40E28D04E0E008E30CE /* AppDelegate.swift */; };
 		348BE41128D04E0E008E30CE /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 348BE41028D04E0E008E30CE /* SceneDelegate.swift */; };
-		348BE41328D04E0E008E30CE /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 348BE41228D04E0E008E30CE /* ViewController.swift */; };
 		348BE41628D04E0E008E30CE /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 348BE41428D04E0E008E30CE /* Main.storyboard */; };
 		348BE41828D04E12008E30CE /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 348BE41728D04E12008E30CE /* Assets.xcassets */; };
 		348BE41B28D04E12008E30CE /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 348BE41928D04E12008E30CE /* LaunchScreen.storyboard */; };
@@ -177,11 +177,11 @@
 		1EF00F882E6CCE5D9199F94E /* Pods-VaporChat.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-VaporChat.release.xcconfig"; path = "Target Support Files/Pods-VaporChat/Pods-VaporChat.release.xcconfig"; sourceTree = "<group>"; };
 		3440201A28D35EDC0098B270 /* PrefixHeader.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PrefixHeader.pch; sourceTree = "<group>"; };
 		3440201B28D35FBC0098B270 /* ADSChatMessageModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADSChatMessageModel.swift; sourceTree = "<group>"; };
+		345C4A39290FAAEF00A277B5 /* WZMChatViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WZMChatViewController.swift; sourceTree = "<group>"; };
 		348410EA28FD67C300E369C5 /* WZMBaseInputView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WZMBaseInputView.swift; sourceTree = "<group>"; };
 		348BE40B28D04E0E008E30CE /* VaporChat.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VaporChat.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		348BE40E28D04E0E008E30CE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		348BE41028D04E0E008E30CE /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
-		348BE41228D04E0E008E30CE /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
 		348BE41528D04E0E008E30CE /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		348BE41728D04E12008E30CE /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		348BE41A28D04E12008E30CE /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
@@ -532,7 +532,6 @@
 				348BE42828D04F0A008E30CE /* Helper */,
 				348BE40E28D04E0E008E30CE /* AppDelegate.swift */,
 				348BE41028D04E0E008E30CE /* SceneDelegate.swift */,
-				348BE41228D04E0E008E30CE /* ViewController.swift */,
 				34F002C9290945DE00815C2F /* Session */,
 				34F002C8290945BA00815C2F /* Friend */,
 				34B3464328D1C78600E30323 /* Chat */,
@@ -702,6 +701,7 @@
 			isa = PBXGroup;
 			children = (
 				34F40B5529036ED200C81371 /* Common */,
+				345C4A39290FAAEF00A277B5 /* WZMChatViewController.swift */,
 			);
 			path = Controller;
 			sourceTree = "<group>";
@@ -1132,7 +1132,6 @@
 				348BE44E28D055D3008E30CE /* ADSHexadecimal.swift in Sources */,
 				348BE42B28D04F0A008E30CE /* ADSInputHelper.swift in Sources */,
 				34BB86D228D09BD300362FB9 /* ArekSpeechRecognizer.swift in Sources */,
-				348BE41328D04E0E008E30CE /* ViewController.swift in Sources */,
 				0CE249DE28E0537000B92101 /* ADSRecordAnimation.swift in Sources */,
 				348BE49928D07646008E30CE /* UIView+TSExtension.swift in Sources */,
 				348BE4B928D07646008E30CE /* Data+TSExtension.swift in Sources */,
@@ -1173,6 +1172,7 @@
 				34BB868928D0773400362FB9 /* UIScrollViewRefresh.swift in Sources */,
 				348BE4AA28D07646008E30CE /* UIScrollView+TSExtension.swift in Sources */,
 				348BE4BA28D07646008E30CE /* Timer+TSBlock.swift in Sources */,
+				345C4A3A290FAAEF00A277B5 /* WZMChatViewController.swift in Sources */,
 				0CE249EA28E0546A00B92101 /* ADSEmojisKeyboard.swift in Sources */,
 				348BE45028D055D7008E30CE /* Extension+NSTimer.swift in Sources */,
 				348BE4A328D07646008E30CE /* UICollectionView+TSExtension.swift in Sources */,
@@ -1440,7 +1440,7 @@
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 10.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 11.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -1482,7 +1482,7 @@
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 10.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 11.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

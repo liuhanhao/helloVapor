@@ -8,12 +8,33 @@
 import UIKit
 import SQLite
 
+class ADSShareInfoSingleton {
+    //第一种方式：静态常量，所有地方用到的都是同一个
+    static let shared = ADSShareInfoSingleton()
+    //将保留字用作标识符，请在其前后加上反引号,default是一个快速的保留关键字
+    static let `default` = ADSShareInfoSingleton()
+    
+    //第二种方式
+    class func defaultManager() -> ADSShareInfoSingleton {
+        return self.default
+    }
+    
+    var shareInfo: ADSChatUserModel
+    // 不要忘记把构造器变成私有
+    private init() {
+        self.shareInfo = ADSChatUserModel.init(uid: "00001",
+                                               name: "无敌是多么的寂寞",
+                                               avatar: "http://sqb.wowozhe.com/images/home/wx_appicon.png")
+    }
+}
+
+
 @objcMembers class ADSChatUserModel: ADSChatBaseModel {
 
     ///默认登录用户
-    let shareInfo = ADSChatUserModel.init(uid: "00001",
-                                          name: "无敌是多么的寂寞",
-                                          avatar: "http://sqb.wowozhe.com/images/home/wx_appicon.png")
+    lazy var shareInfo = {
+        return ADSShareInfoSingleton.shared.shareInfo
+    }()
     ///用户id
     var uid: String = ""
     ///用户昵称
@@ -69,7 +90,7 @@ struct ChatUserModelTable {
                 table.column(showName)
             }))
         } catch {
-            print("创建数据库出错: \(error)")
+            print("数据库表已经存在: \(error)")
         }
     }
     

@@ -212,8 +212,15 @@ struct ChatMessageModelTable {
     private let coverUrl = Expression<String>("coverUrl")
     
     // 一个好友一张表
-    init(messageId: String) {
-        let tableName = messageId + "MessageTable"
+    init(userId: String) {
+        let tableName = "user_" + userId
+        table  = Table(tableName) //表名
+        createdsqlite3(tableName: tableName)
+    }
+
+    // 创建聊天组别表
+    init(groupId: String) {
+        let tableName = "group_" + groupId
         table  = Table(tableName) //表名
         createdsqlite3(tableName: tableName)
     }
@@ -249,7 +256,7 @@ struct ChatMessageModelTable {
                 table.column(coverUrl)
             }))
         } catch {
-            print("创建数据库出错: \(error)")
+            print("数据库表已经存在: \(error)")
         }
     }
     

@@ -11,7 +11,7 @@ import SQLite
 @objcMembers class ADSChatGroupModel: ADSChatBaseModel {
 
     ///用户id
-    var uid: String = ""
+    var gid: String = ""
     ///用户昵称
     var name: String = ""
     ///用户头像 http://sqb.wowozhe.com/images/home/wx_appicon.png
@@ -25,9 +25,9 @@ import SQLite
         super.init()
     }
     
-    init(uid: String, name: String, avatar: String, showName: Bool = false, members: [[String:String]]) {
+    init(gid: String, name: String, avatar: String, showName: Bool = false, members: [[String:String]]) {
         super.init()
-        self.uid = uid
+        self.gid = gid
         self.name = name
         self.avatar = avatar
         self.showName = showName
@@ -45,7 +45,7 @@ struct ChatGroupModelTable {
     private var db: Connection!
     private let table = Table("ChatGroupModelTable") //表名
     private let id = Expression<Int>("id") // 主键
-    private let uid = Expression<String>("uid")
+    private let gid = Expression<String>("gid")
     private let name = Expression<String>("name")
     private let avatar = Expression<String>("avatar")
     private let showName = Expression<Bool>("showName")
@@ -64,31 +64,31 @@ struct ChatGroupModelTable {
             // 创建表
             try db.run(table.create(block: { (table) in
                 table.column(id, primaryKey: true)
-                table.column(uid)
+                table.column(gid)
                 table.column(name)
                 table.column(avatar)
                 table.column(showName)
                 table.column(members)
             }))
         } catch {
-            print("创建数据库出错: \(error)")
+            print("数据库表已经存在: \(error)")
         }
     }
 
     // 添加用户信息
     func insertGroup(groupModel: ADSChatGroupModel) {
         // 用户信息中没有ID就不存入数据库(被列为无效用户)
-        guard groupModel.uid.count > 0 else {
+        guard groupModel.gid.count > 0 else {
             print("没有ID信息,视为无效用户")
             return;
         }
         // 查找数据库中是否有该用户,如果有则执行修改操作
-        guard readGroup(groupId: groupModel.uid) == nil else {
+        guard readGroup(groupId: groupModel.gid) == nil else {
             print("已存在改用户,接下来更新此用户数据")
-            updateGroup(groupId: groupModel.uid, groupModel: groupModel)
+            updateGroup(groupId: groupModel.gid, groupModel: groupModel)
             return
         }
-        let insert = table.insert(uid <- groupModel.uid,
+        let insert = table.insert(gid <- groupModel.gid,
                                   name <- groupModel.name,
                                   avatar <- groupModel.avatar,
                                   showName <- groupModel.showName)
@@ -104,7 +104,7 @@ struct ChatGroupModelTable {
 
     // 删除指定用户信息
     func deleteGroup(userId: String) {
-        let currGroup = table.filter(uid == userId)
+        let currGroup = table.filter(gid == userId)
         do {
             let num = try db.run(currGroup.delete())
             print("deleteUser\(num)")
@@ -115,8 +115,8 @@ struct ChatGroupModelTable {
 
     // 更新指定用户信息
     func updateGroup(groupId: String, groupModel: ADSChatGroupModel) {
-        let currGroup = table.filter(uid == groupId)
-        let update = currGroup.update(uid <- groupModel.uid,
+        let currGroup = table.filter(gid == groupId)
+        let update = currGroup.update(gid <- groupModel.gid,
                                       name <- groupModel.name,
                                       avatar <- groupModel.avatar,
                                       showName <- groupModel.showName)
@@ -132,8 +132,8 @@ struct ChatGroupModelTable {
     func readGroup(groupId: String) -> ADSChatGroupModel? {
         var groupModel: ADSChatGroupModel = ADSChatGroupModel.init()
         for group in try! db.prepare(table) {
-            if group[uid] == groupId {
-                groupModel.uid = group[uid]
+            if group[gid] == groupId {
+                groupModel.gid = group[gid]
                 groupModel.name = group[name]
                 groupModel.avatar = group[avatar]
                 groupModel.showName = group[showName]
@@ -149,7 +149,7 @@ struct ChatGroupModelTable {
         var groupsArr: [ADSChatGroupModel] = [ADSChatGroupModel]()
         var groupModel: ADSChatGroupModel = ADSChatGroupModel()
         for group in try! db.prepare(table) {
-            groupModel.uid = group[uid]
+            groupModel.gid = group[gid]
             groupModel.name = group[name]
             groupModel.avatar = group[avatar]
             groupModel.showName = group[showName]

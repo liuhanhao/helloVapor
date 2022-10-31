@@ -50,7 +50,8 @@ class ADSInputHelper: NSObject {
     var _iPhoneXBottomH:CGFloat = 0
     
     private override init() {
-        
+        super.init()
+        self.reset()
     }
     
     func reset() {
@@ -75,9 +76,8 @@ class ADSInputHelper: NSObject {
     func iPhoneX() -> Bool {
         if _iPhoneX == -1 {
             if #available(iOS 11.0, *) {
-                let appDelegate:AppDelegate = UIApplication.ts_sharedApplication()!.delegate as! AppDelegate
                 let iphone = self.iPhone()
-                let safeAreaInsets:Bool = appDelegate.window!.safeAreaInsets.bottom > 0.0 ? true : false
+                let safeAreaInsets:Bool = UIApplication.shared.keyWindow!.safeAreaInsets.bottom > 0.0 ? true : false
                 _iPhoneX = (iphone && safeAreaInsets) ? 1 : 0
             }
             else {
@@ -92,8 +92,7 @@ class ADSInputHelper: NSObject {
     func statusH() -> CGFloat {
         if _statusH == -1 {
             if #available(iOS 11.0, *) {
-                let appDelegate:AppDelegate = UIApplication.ts_sharedApplication()!.delegate as! AppDelegate
-                _statusH = appDelegate.window!.safeAreaInsets.top
+                _statusH = UIApplication.shared.keyWindow!.safeAreaInsets.top
             }
             else {
                 _statusH = 20.0
@@ -107,8 +106,7 @@ class ADSInputHelper: NSObject {
     func navBarH() -> CGFloat {
         if _navBarH == -1 {
             if #available(iOS 11.0, *) {
-                let appDelegate:AppDelegate = UIApplication.ts_sharedApplication()!.delegate as! AppDelegate
-                _navBarH = appDelegate.window!.safeAreaInsets.top + 44.0
+                _navBarH = UIApplication.shared.keyWindow!.safeAreaInsets.top + 44.0
             }
             else {
                 _navBarH = 44.0
@@ -122,8 +120,7 @@ class ADSInputHelper: NSObject {
     func tabBarH() -> CGFloat {
         if _tabBarH == -1 {
             if #available(iOS 11.0, *) {
-                let appDelegate:AppDelegate = UIApplication.ts_sharedApplication()!.delegate as! AppDelegate
-                _tabBarH = appDelegate.window!.safeAreaInsets.bottom + 49.0
+                _tabBarH = UIApplication.shared.keyWindow!.safeAreaInsets.bottom + 49.0
             }
             else {
                 _tabBarH = 49.0
@@ -169,8 +166,7 @@ class ADSInputHelper: NSObject {
     func iPhoneXBottomH() -> CGFloat {
         if _iPhoneXBottomH == -1 {
             if #available(iOS 11.0, *) {
-                let appDelegate:AppDelegate = UIApplication.ts_sharedApplication()!.delegate as! AppDelegate
-                _iPhoneXBottomH = appDelegate.window!.safeAreaInsets.bottom
+                _iPhoneXBottomH = UIApplication.shared.keyWindow!.safeAreaInsets.bottom
             }
             else {
                 _iPhoneXBottomH = 0.0

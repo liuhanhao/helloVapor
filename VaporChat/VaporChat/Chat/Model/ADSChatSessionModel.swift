@@ -100,7 +100,7 @@ struct ChatSessionModelTable {
                 table.column(lastTimestmp)
             }))
         } catch {
-            print("创建数据库出错: \(error)")
+            print("数据库表已经存在: \(error)")
         }
     }
     
