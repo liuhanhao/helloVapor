@@ -90,6 +90,13 @@
 		348BE4C128D07646008E30CE /* Dictionary+TSExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 348BE48B28D07646008E30CE /* Dictionary+TSExtension.swift */; };
 		348BE4C228D07646008E30CE /* String+TSExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 348BE48C28D07646008E30CE /* String+TSExtension.swift */; };
 		3498BD5D28FF9A7900E8A521 /* Extension+String.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3498BD5C28FF9A7900E8A521 /* Extension+String.swift */; };
+		34AFACEA29115CC6008F505C /* WZMChatBaseCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34AFACE929115CC6008F505C /* WZMChatBaseCell.swift */; };
+		34AFACEC29115D0B008F505C /* WZMChatMessageCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34AFACEB29115D0B008F505C /* WZMChatMessageCell.swift */; };
+		34AFACEE29115D18008F505C /* WZMChatSystemCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34AFACED29115D18008F505C /* WZMChatSystemCell.swift */; };
+		34AFACF029115D23008F505C /* WZMChatTextMessageCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34AFACEF29115D23008F505C /* WZMChatTextMessageCell.swift */; };
+		34AFACF229115D2F008F505C /* WZMChatImageMessageCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34AFACF129115D2F008F505C /* WZMChatImageMessageCell.swift */; };
+		34AFACF429115D39008F505C /* WZMChatVoiceMessageCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34AFACF329115D39008F505C /* WZMChatVoiceMessageCell.swift */; };
+		34AFACF629115D44008F505C /* WZMChatVideoMessageCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34AFACF529115D44008F505C /* WZMChatVideoMessageCell.swift */; };
 		34B3464228D1901D00E30323 /* ADSInputBase64.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34B3464128D1901D00E30323 /* ADSInputBase64.swift */; };
 		34B3464B28D1CE2200E30323 /* Extension+ADSChat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34B3464A28D1CE2100E30323 /* Extension+ADSChat.swift */; };
 		34B3465328D1CE5200E30323 /* ADSChatBaseModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34B3465228D1CE5200E30323 /* ADSChatBaseModel.swift */; };
@@ -273,6 +280,13 @@
 		348BE48B28D07646008E30CE /* Dictionary+TSExtension.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Dictionary+TSExtension.swift"; sourceTree = "<group>"; };
 		348BE48C28D07646008E30CE /* String+TSExtension.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "String+TSExtension.swift"; sourceTree = "<group>"; };
 		3498BD5C28FF9A7900E8A521 /* Extension+String.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Extension+String.swift"; sourceTree = "<group>"; };
+		34AFACE929115CC6008F505C /* WZMChatBaseCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WZMChatBaseCell.swift; sourceTree = "<group>"; };
+		34AFACEB29115D0B008F505C /* WZMChatMessageCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WZMChatMessageCell.swift; sourceTree = "<group>"; };
+		34AFACED29115D18008F505C /* WZMChatSystemCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WZMChatSystemCell.swift; sourceTree = "<group>"; };
+		34AFACEF29115D23008F505C /* WZMChatTextMessageCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WZMChatTextMessageCell.swift; sourceTree = "<group>"; };
+		34AFACF129115D2F008F505C /* WZMChatImageMessageCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WZMChatImageMessageCell.swift; sourceTree = "<group>"; };
+		34AFACF329115D39008F505C /* WZMChatVoiceMessageCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WZMChatVoiceMessageCell.swift; sourceTree = "<group>"; };
+		34AFACF529115D44008F505C /* WZMChatVideoMessageCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WZMChatVideoMessageCell.swift; sourceTree = "<group>"; };
 		34B3464128D1901D00E30323 /* ADSInputBase64.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADSInputBase64.swift; sourceTree = "<group>"; };
 		34B3464A28D1CE2100E30323 /* Extension+ADSChat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Extension+ADSChat.swift"; sourceTree = "<group>"; };
 		34B3465228D1CE5200E30323 /* ADSChatBaseModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADSChatBaseModel.swift; sourceTree = "<group>"; };
@@ -500,6 +514,13 @@
 		0CE249DB28E0537000B92101 /* MsgCell */ = {
 			isa = PBXGroup;
 			children = (
+				34AFACE829115CAC008F505C /* BaseCell */,
+				34AFACEB29115D0B008F505C /* WZMChatMessageCell.swift */,
+				34AFACED29115D18008F505C /* WZMChatSystemCell.swift */,
+				34AFACEF29115D23008F505C /* WZMChatTextMessageCell.swift */,
+				34AFACF129115D2F008F505C /* WZMChatImageMessageCell.swift */,
+				34AFACF329115D39008F505C /* WZMChatVoiceMessageCell.swift */,
+				34AFACF529115D44008F505C /* WZMChatVideoMessageCell.swift */,
 			);
 			path = MsgCell;
 			sourceTree = "<group>";
@@ -685,6 +706,14 @@
 				348BE48C28D07646008E30CE /* String+TSExtension.swift */,
 			);
 			path = Struct;
+			sourceTree = "<group>";
+		};
+		34AFACE829115CAC008F505C /* BaseCell */ = {
+			isa = PBXGroup;
+			children = (
+				34AFACE929115CC6008F505C /* WZMChatBaseCell.swift */,
+			);
+			path = BaseCell;
 			sourceTree = "<group>";
 		};
 		34B3464328D1C78600E30323 /* Chat */ = {
@@ -1138,6 +1167,7 @@
 				348BE4AD28D07646008E30CE /* UserDefaults+TSArchiveData.swift in Sources */,
 				34BB86CA28D09BD300362FB9 /* Arek.swift in Sources */,
 				348BE4B028D07646008E30CE /* URLRequest+TScURLCommand.swift in Sources */,
+				34AFACF029115D23008F505C /* WZMChatTextMessageCell.swift in Sources */,
 				348BE4C128D07646008E30CE /* Dictionary+TSExtension.swift in Sources */,
 				348BE49228D07646008E30CE /* UIApplication+TSExtension.swift in Sources */,
 				348BE49828D07646008E30CE /* UIView+TSFrame.swift in Sources */,
@@ -1164,9 +1194,11 @@
 				34F002D529094E6900815C2F /* WZMUserViewController.swift in Sources */,
 				34BB868828D0773400362FB9 /* UIViewExtension.swift in Sources */,
 				0CE249E528E0537000B92101 /* ADSMoreKeyboard.swift in Sources */,
+				34AFACEC29115D0B008F505C /* WZMChatMessageCell.swift in Sources */,
 				348BE49428D07646008E30CE /* UILabel+TSExtension.swift in Sources */,
 				34F40B5729036ED200C81371 /* ADSChatHelper.swift in Sources */,
 				34D2144428D34D86007A654C /* ADSChatGroupModel.swift in Sources */,
+				34AFACEA29115CC6008F505C /* WZMChatBaseCell.swift in Sources */,
 				34BB86D828D09BD300362FB9 /* ArekCloudKit.swift in Sources */,
 				34F002CF2909463C00815C2F /* WZMSessionViewController.swift in Sources */,
 				34BB868928D0773400362FB9 /* UIScrollViewRefresh.swift in Sources */,
@@ -1217,9 +1249,11 @@
 				34BB86C728D09BD300362FB9 /* PMAlertAction.swift in Sources */,
 				0CE249E628E0537000B92101 /* ADSChatBtn.swift in Sources */,
 				34BB868A28D0773400362FB9 /* JRefreshConst.swift in Sources */,
+				34AFACEE29115D18008F505C /* WZMChatSystemCell.swift in Sources */,
 				348BE42C28D04F0A008E30CE /* ADSInputEnum.swift in Sources */,
 				348BE4BB28D07646008E30CE /* Date+TSExtension.swift in Sources */,
 				34D2144628D34D98007A654C /* ADSChatSessionModel.swift in Sources */,
+				34AFACF629115D44008F505C /* WZMChatVideoMessageCell.swift in Sources */,
 				348BE49A28D07646008E30CE /* UIView+TSGestureBlock.swift in Sources */,
 				34B3464228D1901D00E30323 /* ADSInputBase64.swift in Sources */,
 				34BB868E28D0773400362FB9 /* JRefreshAutoStateFooter.swift in Sources */,
@@ -1235,11 +1269,13 @@
 				34BB869528D0773400362FB9 /* JRefreshComponent.swift in Sources */,
 				348BE4B628D07646008E30CE /* IndexPath+TSOffset.swift in Sources */,
 				348BE4A428D07646008E30CE /* UINavigationController+TSExtension.swift in Sources */,
+				34AFACF429115D39008F505C /* WZMChatVoiceMessageCell.swift in Sources */,
 				34BB86DF28D09BD300362FB9 /* ArekHealth.swift in Sources */,
 				0CE249E328E0537000B92101 /* ADSEmoticonCell.swift in Sources */,
 				348BE49328D07646008E30CE /* UICollectionView+TSGeneric.swift in Sources */,
 				348BE49028D07646008E30CE /* UIImage+TSLaunchImage.swift in Sources */,
 				34F002D12909465A00815C2F /* WZMSessionTableViewCell.swift in Sources */,
+				34AFACF229115D2F008F505C /* WZMChatImageMessageCell.swift in Sources */,
 				348BE4AE28D07646008E30CE /* FileManager+TSExtension.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

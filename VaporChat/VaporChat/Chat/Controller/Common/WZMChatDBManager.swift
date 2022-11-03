@@ -29,34 +29,34 @@ class WZMChatDBManager: NSObject {
         super.init()
     }
     
-//    ///草稿
-//    func draft(model: ADSChatUserModel) -> String {
-//        <#function body#>
-//    }
-//    //草稿
-//    - (NSString *)draftWithModel:(WZMChatBaseModel *)model {
-//        NSString *key = [self tableNameWithModel:model];
-//        NSString *draft = [_draftDic objectForKey:key];
-//        if (draft == nil || ![draft isKindOfClass:[NSString class]]) {
-//            draft = @"";
-//        }
-//        return draft;
-//    }
-//
-//    //删除草稿
-//    - (void)removeDraftWithModel:(WZMChatBaseModel *)model {
-//        NSString *key = [self tableNameWithModel:model];
-//        [_draftDic removeObjectForKey:key];
-//    }
-//
-//    //保存草稿
-//    - (void)setDraft:(NSString *)draft model:(WZMChatBaseModel *)model {
-//        if (draft == nil || ![draft isKindOfClass:[NSString class]]) {
-//            draft = @"";
-//        }
-//        NSString *key = [self tableNameWithModel:model];
-//        [_draftDic setObject:draft forKey:key];
-//    }
+    ///草稿
+    func draft(model: ADSChatBaseModel) -> String {
+        if let userModel = model as? ADSChatUserModel { // 单聊
+            return self.draftDic[userModel.uid] ?? ""
+        } else if let groupModel = model as? ADSChatGroupModel { // 群聊
+            return self.draftDic[groupModel.gid] ?? ""
+        } else {
+            return ""
+        }
+    }
+
+    //删除草稿
+    func removeDraft(model: ADSChatBaseModel) {
+        if let userModel = model as? ADSChatUserModel { // 单聊
+            self.draftDic[userModel.uid] = ""
+        } else if let groupModel = model as? ADSChatGroupModel { // 群聊
+            self.draftDic[groupModel.gid] = ""
+        }
+    }
+
+    //保存草稿
+    func setDraft(model: ADSChatBaseModel, draft: String) {
+        if let userModel = model as? ADSChatUserModel { // 单聊
+            self.draftDic[userModel.uid] = draft
+        } else if let groupModel = model as? ADSChatGroupModel { // 群聊
+            self.draftDic[groupModel.gid] = draft
+        }
+    }
 //
 //    #pragma mark - user表操纵
 //    //所有用户
@@ -256,34 +256,7 @@ class WZMChatDBManager: NSObject {
 //        [[WZMChatSqliteManager shareManager] deleteTableName:tableName];
 //    }
 //
-//    //私聊消息
-//    - (NSMutableArray *)messagesWithUser:(WZMChatUserModel *)model page:(NSInteger)page {
-//        return [self messagesWithModel:model page:page];
-//    }
-//
-//    //群聊消息
-//    - (NSMutableArray *)messagesWithGroup:(WZMChatGroupModel *)model page:(NSInteger)page {
-//        return [self messagesWithModel:model page:page];
-//    }
-//
-//    //private
-//    - (NSMutableArray *)messagesWithModel:(WZMChatBaseModel *)model page:(NSInteger)page {
-//        NSString *tableName = [self tableNameWithModel:model];
-//        NSString *sql;
-//        if (page == 0) {
-//            sql = [NSString stringWithFormat:@"SELECT * FROM %@ ORDER BY timestmp DESC LIMIT 20",tableName];
-//        }
-//        else {
-//            sql = [NSString stringWithFormat:@"SELECT * FROM %@ WHERE timestmp < %@ ORDER BY timestmp DESC LIMIT 20",tableName,@(page)];
-//        }
-//        NSArray *list = [[WZMChatSqliteManager shareManager] selectWithSql:sql];
-//        NSMutableArray *arr = [NSMutableArray arrayWithCapacity:list.count];
-//        for (NSDictionary *dic in list) {
-//            WZMChatMessageModel *model = [WZMChatMessageModel modelWithDic:dic];
-//            [arr insertObject:model atIndex:0];
-//        }
-//        return arr;
-//    }
+    
 //
 //    //插入私聊消息
 //    - (void)insertMessage:(WZMChatMessageModel *)message chatWithUser:(WZMChatUserModel *)model {
@@ -333,36 +306,15 @@ class WZMChatDBManager: NSObject {
 //
     
     
-    // 创建用户消息表，以用户的userid作为表名
-    func createUserMessageTableName(userId: String) -> ChatMessageModelTable {
-        if let messageTable = self.chatSqliteManager.messageTables[userId] {
-            return messageTable
-        } else {
-            let messageTable = ChatMessageModelTable.init(userId: userId)
-            self.chatSqliteManager.messageTables[userId] = messageTable
-            return messageTable
-        }
+    // 创建用户/群聊消息表，以用户的userid作为表名
+    func createMessageTableName(model: ADSChatBaseModel) -> ChatMessageModelTable {
+        return self.chatSqliteManager.getMessageTable(model: model)!
     }
     
-    // 删除用户消息表
-    func deleteUserMessageTableName(userId: String) -> Bool {
+    // 删除用户/群聊消息表
+    func deleteMessageTableName(model: ADSChatBaseModel) -> Bool {
         return true
     }
     
-    // 创建群组消息表，以用户的groupid作为表名
-    func createGroupMessageTableName(groupId: String) -> ChatMessageModelTable {
-        if let messageTable = self.chatSqliteManager.messageTables[groupId] {
-            return messageTable
-        } else {
-            let messageTable = ChatMessageModelTable.init(groupId: groupId)
-            self.chatSqliteManager.messageTables[groupId] = messageTable
-            return messageTable
-        }
-    }
-    
-    // 删除用户消息表
-    func deleteGroupMessageTableName(groupId: String) -> Bool {
-        return true
-    }
     
 }

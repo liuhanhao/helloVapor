@@ -52,9 +52,9 @@ enum ADSMessageSendType: Int {
     ///消息发送结果
     var sendType: ADSMessageSendType = ADSMessageSendType.WZMMessageSendTypeWaiting
     ///缓存model宽, 优化列表滑动
-    var modelW: Int = -1
+    var modelW: Double = -1
     ///缓存model高, 优化列表滑动
-    var modelH: Int = -1
+    var modelH: Double = -1
     
     // TODO: 图片消息
     //图片宽高
@@ -76,16 +76,19 @@ enum ADSMessageSendType: Int {
     //视频封面地址
     var coverUrl: String = ""
     
-    lazy var attStr = {
-        var style: NSMutableParagraphStyle = NSMutableParagraphStyle.init()
-        style.lineSpacing = 2
-        
-        let att = ADSEmoticonManager.manager().attributedString(aString: self.message)
-        att.addAttribute(NSAttributedString.Key.font, value: UIFont.systemFont(ofSize: 15), range: NSMakeRange(0, att.length))
-        att.addAttribute(NSAttributedString.Key.paragraphStyle , value: style, range: NSMakeRange(0, att.length))
-        
-        return att
-    }()
+    var attStr: NSMutableAttributedString {
+        set {}
+        get {
+            var style: NSMutableParagraphStyle = NSMutableParagraphStyle.init()
+            style.lineSpacing = 2
+            
+            let att = ADSEmoticonManager.manager().attributedString(aString: self.message)
+            att.addAttribute(NSAttributedString.Key.font, value: UIFont.systemFont(ofSize: 15), range: NSMakeRange(0, att.length))
+            att.addAttribute(NSAttributedString.Key.paragraphStyle , value: style, range: NSMakeRange(0, att.length))
+            
+            return att
+        }
+    }
     
     override init() {
         super.init()
@@ -136,19 +139,19 @@ enum ADSMessageSendType: Int {
         if self.modelH == -1 || self.modelW == -1 {
             if self.msgType == .ADSMessageTypeSystem {
                 self.modelH = 20
-                self.modelW = Int(ADSInputHelper.sharedHelper.screenW())
+                self.modelW = ADSInputHelper.sharedHelper.screenW()
             }
             else if self.msgType == .ADSMessageTypeText {
                 let options = NSStringDrawingOptions.usesFontLeading.union(.usesLineFragmentOrigin)
                 let size = self.attStr.boundingRect(with: CGSize.init(width: ADSInputHelper.sharedHelper.screenW() - 127, height: CGFloat.greatestFiniteMagnitude), options: options, context: nil).size
                 
-                self.modelH = Int(max(ceil(size.height), 30.0))
-                self.modelW = Int(max(ceil(size.width), 30.0))
+                self.modelH = max(ceil(size.height), 30.0)
+                self.modelW = max(ceil(size.width), 30.0)
             }
             else if self.msgType == .ADSMessageTypeImage {
                 self.handleImageSize()
-                self.modelH = Int(self.imgH)
-                self.modelW = Int(self.imgW)
+                self.modelH = self.imgH
+                self.modelW = self.imgW
             }
             else if (self.msgType == .ADSMessageTypeVoice) {
                 var minW = 60.0
@@ -158,26 +161,26 @@ enum ADSMessageSendType: Int {
                     dw = 5.6
                 }
                 if self.duration < 6 {
-                    self.modelW = Int(minW+self.duration*dw)
+                    self.modelW = minW+self.duration*dw
                 }
                 else if self.duration < 11 {
-                    self.modelW = Int(minW+dw*5.0+(self.duration-5)*(dw-2))
+                    self.modelW = minW+dw*5.0+(self.duration-5)*(dw-2)
                 }
                 else if self.duration < 21 {
-                    self.modelW = Int(minW+dw*5+(dw-2)*5+(self.duration-10)*(dw-3))
+                    self.modelW = minW+dw*5+(dw-2)*5+(self.duration-10)*(dw-3)
                 }
                 else  if self.duration < 61 {
-                    self.modelW = Int(minW+dw*5+(dw-2)*5+(dw-3)*10+(self.duration-20)*(dw-4))
+                    self.modelW = minW+dw*5+(dw-2)*5+(dw-3)*10+(self.duration-20)*(dw-4)
                 }
                 else {
-                    self.modelW = Int(minW+dw*5+(dw-2)*5+(dw-3)*10+40*(dw-4))
+                    self.modelW = minW+dw*5+(dw-2)*5+(dw-3)*10+40*(dw-4)
                 }
                 self.modelH = 30
             }
             else if (self.msgType == .ADSMessageTypeVideo) {
                 self.handleImageSize()
-                self.modelH = Int(self.imgH)
-                self.modelW = Int(self.imgW)
+                self.modelH = self.imgH
+                self.modelW = self.imgW
             }
         }
         
@@ -200,8 +203,8 @@ struct ChatMessageModelTable {
     private let timestmp = Expression<Int>("timestmp")
     private let msgType = Expression<Int>("msgType")
     private let sendType = Expression<Int>("sendType")
-    private let modelW = Expression<Int>("modelW")
-    private let modelH = Expression<Int>("modelH")
+    private let modelW = Expression<Double>("modelW")
+    private let modelH = Expression<Double>("modelH")
     private let imgW = Expression<Double>("imgW")
     private let imgH = Expression<Double>("imgH")
     private let original = Expression<String>("original")
@@ -211,17 +214,40 @@ struct ChatMessageModelTable {
     private let videoUrl = Expression<String>("videoUrl")
     private let coverUrl = Expression<String>("coverUrl")
     
+    static func createdTableName(model: ADSChatBaseModel) -> String {
+        if let user = model as? ADSChatUserModel {
+            return "user_" + user.uid
+        } else if let group = model as? ADSChatGroupModel {
+            return "group_" + group.gid
+        } else if let session = model as? ADSChatSessionModel {
+            if session.cluster {
+                return "group_" + session.sid
+            } else {
+                return "user_" + session.sid
+            }
+        } else {
+            return ""
+        }
+    }
+    
     // 一个好友一张表
-    init(userId: String) {
-        let tableName = "user_" + userId
-        table  = Table(tableName) //表名
+    init(userModel: ADSChatUserModel) {
+        let tableName = Self.createdTableName(model: userModel)
+        table = Table(tableName) //表名
         createdsqlite3(tableName: tableName)
     }
 
     // 创建聊天组别表
-    init(groupId: String) {
-        let tableName = "group_" + groupId
-        table  = Table(tableName) //表名
+    init(groupModel: ADSChatGroupModel) {
+        let tableName = Self.createdTableName(model: groupModel)
+        table = Table(tableName) //表名
+        createdsqlite3(tableName: tableName)
+    }
+    
+    // 根据sessionModel 创建表
+    init(sessionModel: ADSChatSessionModel) {
+        let tableName = Self.createdTableName(model: sessionModel)
+        table = Table(tableName) //表名
         createdsqlite3(tableName: tableName)
     }
     
@@ -377,10 +403,47 @@ struct ChatMessageModelTable {
     }
     
     // 查询所有用户信息
-    func readAllMessageModels() -> [ADSChatMessageModel]? {
+    func readAllMessageModels() -> [ADSChatMessageModel] {
         var usersArr: [ADSChatMessageModel] = [ADSChatMessageModel]()
         let messageModel: ADSChatMessageModel = ADSChatMessageModel()
         for messageM in try! db.prepare(table) {
+            messageModel.mid = messageM[mid]
+            messageModel.uid = messageM[uid]
+            messageModel.name = messageM[name]
+            messageModel.avatar = messageM[avatar]
+            messageModel.message = messageM[message]
+            messageModel.sender = messageM[sender]
+            messageModel.read = messageM[read]
+            messageModel.timestmp = messageM[timestmp]
+            messageModel.msgType = ADSMessageType.init(rawValue: messageM[msgType])!
+            messageModel.sendType = ADSMessageSendType.init(rawValue: messageM[sendType])!
+            messageModel.modelW = messageM[modelW]
+            messageModel.modelH = messageM[modelH]
+            messageModel.imgW = messageM[imgW]
+            messageModel.imgH = messageM[imgH]
+            messageModel.original = messageM[original]
+            messageModel.thumbnail = messageM[thumbnail]
+            messageModel.voiceUrl = messageM[voiceUrl]
+            messageModel.duration = messageM[duration]
+            messageModel.videoUrl = messageM[videoUrl]
+            messageModel.coverUrl = messageM[coverUrl]
+            usersArr.append(messageModel)
+        }
+        return usersArr
+    }
+    
+    // 根据时间排序进行翻页
+    func readMessages(orderBy desc: Bool, page: Int) -> [ADSChatMessageModel] {
+        var usersArr: [ADSChatMessageModel] = [ADSChatMessageModel]()
+        
+        var orderBy: [Expressible] = [timestmp.desc]
+        if desc == false {
+            orderBy = [timestmp.asc]
+        }
+        // 构造查询语句 翻页
+        let sql = self.table.order(orderBy).limit(10)
+        let messageModel: ADSChatMessageModel = ADSChatMessageModel()
+        for messageM in try! db.prepare(sql) {
             messageModel.mid = messageM[mid]
             messageModel.uid = messageM[uid]
             messageModel.name = messageM[name]

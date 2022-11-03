@@ -139,12 +139,7 @@ class WZMSessionViewController: UIViewController, UITableViewDelegate, UITableVi
                 WZMChatNotificationManager.postSessionNotification()
                 
                 //删除聊天记录
-                if session.cluster {
-                    let _ = WZMChatDBManager.shared.deleteGroupMessageTableName(groupId: session.sid)
-                } else {
-                    let _ = WZMChatDBManager.shared.deleteUserMessageTableName(userId: session.sid)
-                }
-                
+                let _ = WZMChatDBManager.shared.deleteMessageTableName(model: session)
             }
             return [deleteAction]
         }

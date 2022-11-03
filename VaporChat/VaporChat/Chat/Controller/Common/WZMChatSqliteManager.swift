@@ -18,7 +18,7 @@ class WZMChatSqliteManager: NSObject {
     let chatGroupTable: ChatGroupModelTable = ChatGroupModelTable()
     let chatSessionTable: ChatSessionModelTable = ChatSessionModelTable()
     // userid作为key
-    var messageTables: [String : ChatMessageModelTable] = [:]
+    fileprivate var messageTables: [String : ChatMessageModelTable] = [:]
     
     //第二种方式
     class func defaultManager() -> WZMChatSqliteManager {
@@ -29,6 +29,60 @@ class WZMChatSqliteManager: NSObject {
         super.init()
     }
     
+    func getMessageTable(model: ADSChatBaseModel) -> ChatMessageModelTable? {
+        if let user = model as? ADSChatUserModel {
+            let tableName = ChatMessageModelTable.createdTableName(model: user)
+            
+            guard let messageTable:ChatMessageModelTable = self.messageTables[tableName] else {
+                return ChatMessageModelTable.init(userModel: user)
+            }
+            
+            // 保存到messageTables中
+            self.messageTables[tableName] = messageTable
+            return messageTable
+        } else if let group = model as? ADSChatGroupModel {
+            let tableName = ChatMessageModelTable.createdTableName(model: group)
+            
+            guard let messageTable:ChatMessageModelTable = self.messageTables[tableName] else {
+                return ChatMessageModelTable.init(groupModel: group)
+            }
+            
+            // 保存到messageTables中
+            self.messageTables[tableName] = messageTable
+            return messageTable
+        } else if let session = model as? ADSChatSessionModel {
+            let tableName = ChatMessageModelTable.createdTableName(model: session)
+            
+            guard let messageTable:ChatMessageModelTable = self.messageTables[tableName] else {
+                return ChatMessageModelTable.init(sessionModel: session)
+            }
+            
+            // 保存到messageTables中
+            self.messageTables[tableName] = messageTable
+            return messageTable
+        } else {
+            return nil
+        }
+    }
     
+    //私聊消息
+    func messagesWithUser(model: ADSChatUserModel, page: Int) -> [ADSChatMessageModel] {
+        return self.messagesWithModel(model: model, page: page)
+    }
+
+    //群聊消息
+    func messagesWithGroup(model: ADSChatGroupModel, page: Int) -> [ADSChatMessageModel] {
+        return self.messagesWithModel(model: model, page: page)
+    }
+    
+    //private
+    func messagesWithModel(model: ADSChatBaseModel, page: Int) -> [ADSChatMessageModel] {
+        if let messageTable = self.getMessageTable(model: model) {
+            return messageTable.readMessages(orderBy: true, page: page)
+        }
+        else {
+            return []
+        }
+    }
     
 }
