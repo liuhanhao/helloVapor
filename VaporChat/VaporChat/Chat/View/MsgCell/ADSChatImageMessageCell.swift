@@ -1,5 +1,5 @@
 //
-//  WZMChatImageMessageCell.swift
+//  ADSChatImageMessageCell.swift
 //  VaporChat
 //
 //  Created by admin on 2022/11/1.
@@ -8,7 +8,7 @@
 import Foundation
 import UIKit
 
-class WZMChatImageMessageCell: WZMChatMessageCell {
+class ADSChatImageMessageCell: ADSChatMessageCell {
 
     var contentImageView: UIImageView = UIImageView.init()
     

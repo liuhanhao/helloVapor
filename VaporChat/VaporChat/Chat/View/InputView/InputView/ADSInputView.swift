@@ -18,7 +18,7 @@ import Foundation
     @objc optional func inputView(_: ADSInputView, willChangeFrameWithDuration duration: CGFloat)
 }
 
-class ADSInputView: WZMBaseInputView, ADSToolViewDelegate, ADSEmojisKeyboardDelegate, ADSMoreKeyboardDelegate {
+class ADSInputView: ADSBaseInputView, ADSToolViewDelegate, ADSEmojisKeyboardDelegate, ADSMoreKeyboardDelegate {
     
     weak var delegate: WZMInputViewDelegate?
     

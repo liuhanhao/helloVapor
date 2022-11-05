@@ -1,5 +1,5 @@
 //
-//  WZMUserTableViewCell.swift
+//  ADSUserTableViewCell.swift
 //  VaporChat
 //
 //  Created by admin on 2022/10/26.
@@ -7,7 +7,7 @@
 
 import UIKit
 
-class WZMUserTableViewCell: UITableViewCell {
+class ADSUserTableViewCell: UITableViewCell {
 
     var _avatarImageView: UIImageView = UIImageView.init()
     var _nameLabel: UILabel = UILabel.init()

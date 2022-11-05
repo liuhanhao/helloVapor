@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="21225" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="dlM-oF-civ">
-    <device id="retina6_0" orientation="portrait" appearance="light"/>
     <dependencies>
-        <deployment identifier="iOS"/>
         <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="21207"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
         <capability name="System colors in document resources" minToolsVersion="11.0"/>
@@ -29,9 +27,9 @@
         <!--Item 2-->
         <scene sceneID="3uJ-tL-vBZ">
             <objects>
-                <viewController id="aEf-aG-EbS" customClass="WZMUserViewController" customModule="VaporChat" customModuleProvider="target" sceneMemberID="viewController">
+                <viewController id="aEf-aG-EbS" customClass="ADSUserViewController" customModule="VaporChat" customModuleProvider="target" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="Dmz-9R-ePl">
-                        <rect key="frame" x="0.0" y="0.0" width="390" height="844"/>
+                        <rect key="frame" x="0.0" y="0.0" width="600" height="600"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <viewLayoutGuide key="safeArea" id="axw-UT-6mF"/>
                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
@@ -46,9 +44,9 @@
         <!--会话-->
         <scene sceneID="Uej-6z-xaC">
             <objects>
-                <viewController id="zzq-6r-NKb" customClass="WZMSessionViewController" customModule="VaporChat" customModuleProvider="target" sceneMemberID="viewController">
+                <viewController id="zzq-6r-NKb" customClass="ADSSessionViewController" customModule="VaporChat" customModuleProvider="target" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="W9g-Ug-UH7">
-                        <rect key="frame" x="0.0" y="0.0" width="390" height="844"/>
+                        <rect key="frame" x="0.0" y="0.0" width="600" height="600"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <viewLayoutGuide key="safeArea" id="7DP-8L-k8U"/>
                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>

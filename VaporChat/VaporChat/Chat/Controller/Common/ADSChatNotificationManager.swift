@@ -1,5 +1,5 @@
 //
-//  WZMChatNotificationManager.swift
+//  ADSChatNotificationManager.swift
 //  VaporChat
 //
 //  Created by admin on 2022/10/26.
@@ -7,7 +7,7 @@
 
 import UIKit
 
-class WZMChatNotificationManager: NSObject {
+class ADSChatNotificationManager: NSObject {
 
     ///发送刷新session的通知
     class func postSessionNotification() {

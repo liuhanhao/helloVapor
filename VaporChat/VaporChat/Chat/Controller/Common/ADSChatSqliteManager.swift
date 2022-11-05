@@ -1,5 +1,5 @@
 //
-//  WZMChatSqliteManager.swift
+//  ADSChatSqliteManager.swift
 //  VaporChat
 //
 //  Created by admin on 2022/10/26.
@@ -7,12 +7,12 @@
 
 import UIKit
 
-class WZMChatSqliteManager: NSObject {
+class ADSChatSqliteManager: NSObject {
     
     //第一种方式：静态常量，所有地方用到的都是同一个
-    static let shared = WZMChatSqliteManager()
+    static let shared = ADSChatSqliteManager()
     //将保留字用作标识符，请在其前后加上反引号,default是一个快速的保留关键字
-    static let `default` = WZMChatSqliteManager()
+    static let `default` = ADSChatSqliteManager()
     
     let chatUserTable: ChatUserModelTable = ChatUserModelTable()
     let chatGroupTable: ChatGroupModelTable = ChatGroupModelTable()
@@ -21,7 +21,7 @@ class WZMChatSqliteManager: NSObject {
     fileprivate var messageTables: [String : ChatMessageModelTable] = [:]
     
     //第二种方式
-    class func defaultManager() -> WZMChatSqliteManager {
+    class func defaultManager() -> ADSChatSqliteManager {
         return self.default
     }
     

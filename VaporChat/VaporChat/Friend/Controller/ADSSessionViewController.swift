@@ -1,5 +1,5 @@
 //
-//  WZMSessionViewController.swift
+//  ADSSessionViewController.swift
 //  VaporChat
 //
 //  Created by admin on 2022/10/26.
@@ -7,7 +7,7 @@
 
 import UIKit
 
-class WZMSessionViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
+class ADSSessionViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
 
     var sessions: [ADSChatSessionModel] = []
     var isRefreshSession: Bool = false
@@ -37,7 +37,7 @@ class WZMSessionViewController: UIViewController, UITableViewDelegate, UITableVi
         self.setupUI()
         self.loadSession()
         self.setRightItem()
-        WZMChatNotificationManager.observerSessionNotification(instant: self, sel: #selector(self.receiveSessionNotification))
+        ADSChatNotificationManager.observerSessionNotification(instant: self, sel: #selector(self.receiveSessionNotification))
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -56,7 +56,7 @@ class WZMSessionViewController: UIViewController, UITableViewDelegate, UITableVi
         self.sessions.removeAll { model in
             return true
         }
-        if let sessionModels = WZMChatDBManager.shared.chatSqliteManager.chatSessionTable.readAllSessions() {
+        if let sessionModels = ADSChatDBManager.shared.chatSqliteManager.chatSessionTable.readAllSessions() {
             for i in 0..<sessionModels.count {
                 self.sessions.append(sessionModels[i])
             }
@@ -102,7 +102,7 @@ class WZMSessionViewController: UIViewController, UITableViewDelegate, UITableVi
         if indexPath.row < self.sessions.count {
             let session = self.sessions[indexPath.row]
             
-            let chatVC = WZMChatViewController.init(sessionModel: session)
+            let chatVC = ADSChatViewController.init(sessionModel: session)
             chatVC.hidesBottomBarWhenPushed = true
             self.navigationController?.pushViewController(chatVC, animated: true)
         }
@@ -117,9 +117,9 @@ class WZMSessionViewController: UIViewController, UITableViewDelegate, UITableVi
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        var cell: WZMSessionTableViewCell? = tableView.dequeueReusableCell(withIdentifier: "WZMSessionTableViewCell") as? WZMSessionTableViewCell
+        var cell: ADSSessionTableViewCell? = tableView.dequeueReusableCell(withIdentifier: "ADSSessionTableViewCell") as? ADSSessionTableViewCell
         if cell == nil {
-            cell = WZMSessionTableViewCell.init(style: UITableViewCell.CellStyle.value1, reuseIdentifier: "WZMSessionTableViewCell")
+            cell = ADSSessionTableViewCell.init(style: UITableViewCell.CellStyle.value1, reuseIdentifier: "ADSSessionTableViewCell")
         }
         
         if indexPath.row < self.sessions.count {
@@ -135,11 +135,11 @@ class WZMSessionViewController: UIViewController, UITableViewDelegate, UITableVi
             let deleteAction = UITableViewRowAction.init(style: UITableViewRowAction.Style.default, title: "删除") { action, indexPath in
                 self.sessions.remove(at: indexPath.row)
                 self.tableView.reloadData()
-                let _ = WZMChatDBManager.shared.chatSqliteManager.chatSessionTable.deleteSession(sessionId: session.sid)
-                WZMChatNotificationManager.postSessionNotification()
+                let _ = ADSChatDBManager.shared.chatSqliteManager.chatSessionTable.deleteSession(sessionId: session.sid)
+                ADSChatNotificationManager.postSessionNotification()
                 
                 //删除聊天记录
-                let _ = WZMChatDBManager.shared.deleteMessageTableName(model: session)
+                let _ = ADSChatDBManager.shared.deleteMessageTableName(model: session)
             }
             return [deleteAction]
         }
@@ -148,6 +148,6 @@ class WZMSessionViewController: UIViewController, UITableViewDelegate, UITableVi
     }
     
     deinit {
-        WZMChatNotificationManager.removeObserver(instant: self)
+        ADSChatNotificationManager.removeObserver(instant: self)
     }
 }

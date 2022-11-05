@@ -1,5 +1,5 @@
 //
-//  WZMUserViewController.swift
+//  ADSUserViewController.swift
 //  VaporChat
 //
 //  Created by admin on 2022/10/26.
@@ -7,7 +7,7 @@
 
 import UIKit
 
-class WZMUserViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
+class ADSUserViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
     
     var users: [ADSChatUserModel] = []
     
@@ -47,7 +47,7 @@ class WZMUserViewController: UIViewController, UITableViewDelegate, UITableViewD
         self.users.removeAll { model in
             return true
         }
-        if let userModels = WZMChatDBManager.shared.chatSqliteManager.chatUserTable.readAllUsers() {
+        if let userModels = ADSChatDBManager.shared.chatSqliteManager.chatUserTable.readAllUsers() {
             for i in 0..<userModels.count {
                 self.users.append(userModels[i])
             }
@@ -56,7 +56,7 @@ class WZMUserViewController: UIViewController, UITableViewDelegate, UITableViewD
     }
     
     func setRightItem() {
-        let item = UIBarButtonItem.init(title: "添加好友", style: UIBarButtonItem.Style.plain, target: self, action: #selector(WZMUserViewController.rightItemClick(item:)))
+        let item = UIBarButtonItem.init(title: "添加好友", style: UIBarButtonItem.Style.plain, target: self, action: #selector(ADSUserViewController.rightItemClick(item:)))
         self.navigationItem.rightBarButtonItem = item
     }
     
@@ -74,7 +74,7 @@ class WZMUserViewController: UIViewController, UITableViewDelegate, UITableViewD
         self.tableView.reloadData()
 
         // 加入数据库
-        let _ = WZMChatDBManager.shared.chatSqliteManager.chatUserTable.insertUser(userModel: model)
+        let _ = ADSChatDBManager.shared.chatSqliteManager.chatUserTable.insertUser(userModel: model)
     }
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
@@ -82,7 +82,8 @@ class WZMUserViewController: UIViewController, UITableViewDelegate, UITableViewD
         if indexPath.row < self.users.count {
             let model = self.users[indexPath.row]
             
-            let chatVC: WZMChatViewController = WZMChatViewController.init(userModel: model)
+            let chatVC: ADSChatViewController = ADSChatViewController.init(userModel: model)
+            chatVC.userModel = model
             chatVC.hidesBottomBarWhenPushed = true
             self.navigationController?.pushViewController(chatVC, animated: true)
         }
@@ -94,9 +95,9 @@ class WZMUserViewController: UIViewController, UITableViewDelegate, UITableViewD
         return 60.0;
     }
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        var cell: WZMUserTableViewCell? = tableView.dequeueReusableCell(withIdentifier: "WZMUserTableViewCell") as? WZMUserTableViewCell
+        var cell: ADSUserTableViewCell? = tableView.dequeueReusableCell(withIdentifier: "ADSUserTableViewCell") as? ADSUserTableViewCell
         if cell == nil {
-            cell = WZMUserTableViewCell.init(style: UITableViewCell.CellStyle.value1, reuseIdentifier: "WZMUserTableViewCell")
+            cell = ADSUserTableViewCell.init(style: UITableViewCell.CellStyle.value1, reuseIdentifier: "ADSUserTableViewCell")
         }
         
         if indexPath.row < self.users.count {
@@ -112,8 +113,8 @@ class WZMUserViewController: UIViewController, UITableViewDelegate, UITableViewD
             let deleteAction = UITableViewRowAction.init(style: UITableViewRowAction.Style.default, title: "删除") { action, indexPath in
                 self.users.remove(at: indexPath.row)
                 self.tableView.reloadData()
-                let _ = WZMChatDBManager.shared.chatSqliteManager.chatUserTable.deleteUser(userId: model.uid)
-                WZMChatNotificationManager.postSessionNotification()
+                let _ = ADSChatDBManager.shared.chatSqliteManager.chatUserTable.deleteUser(userId: model.uid)
+                ADSChatNotificationManager.postSessionNotification()
             }
             return [deleteAction]
         }

@@ -1,5 +1,5 @@
 //
-//  WZMChatDBManager.swift
+//  ADSChatDBManager.swift
 //  VaporChat
 //
 //  Created by admin on 2022/10/26.
@@ -7,21 +7,21 @@
 
 import UIKit
 
-class WZMChatDBManager: NSObject {
+class ADSChatDBManager: NSObject {
 
-    lazy var chatSqliteManager: WZMChatSqliteManager = {
-        return WZMChatSqliteManager.shared
+    lazy var chatSqliteManager: ADSChatSqliteManager = {
+        return ADSChatSqliteManager.shared
     }()
     ///输入框草稿
     var draftDic:[String:String] = [:]
     
     //第一种方式：静态常量，所有地方用到的都是同一个
-    static let shared = WZMChatDBManager()
+    static let shared = ADSChatDBManager()
     //将保留字用作标识符，请在其前后加上反引号,default是一个快速的保留关键字
-    static let `default` = WZMChatDBManager()
+    static let `default` = ADSChatDBManager()
     
     //第二种方式
-    class func defaultManager() -> WZMChatDBManager {
+    class func defaultManager() -> ADSChatDBManager {
         return self.default
     }
     
@@ -62,7 +62,7 @@ class WZMChatDBManager: NSObject {
 //    //所有用户
 //    - (NSMutableArray *)users {
 //        NSString *sql = [NSString stringWithFormat:@"SELECT * FROM %@",WZM_USER];
-//        NSArray *list = [[WZMChatSqliteManager shareManager] selectWithSql:sql];
+//        NSArray *list = [[ADSChatSqliteManager shareManager] selectWithSql:sql];
 //        NSMutableArray *arr = [NSMutableArray arrayWithCapacity:list.count];
 //        for (NSDictionary *dic in list) {
 //            WZMChatUserModel *model = [WZMChatUserModel modelWithDic:dic];
@@ -73,18 +73,18 @@ class WZMChatDBManager: NSObject {
 //
 //    //添加用户
 //    - (void)insertUserModel:(WZMChatUserModel *)model {
-//        [[WZMChatSqliteManager shareManager] insertModel:model tableName:WZM_USER];
+//        [[ADSChatSqliteManager shareManager] insertModel:model tableName:WZM_USER];
 //    }
 //
 //    //更新用户
 //    - (void)updateUserModel:(WZMChatUserModel *)model {
-//        [[WZMChatSqliteManager shareManager] updateModel:model tableName:WZM_USER primkey:@"uid"];
+//        [[ADSChatSqliteManager shareManager] updateModel:model tableName:WZM_USER primkey:@"uid"];
 //    }
 //
 //    //查询用户
 //    - (WZMChatUserModel *)selectUserModel:(NSString *)uid {
 //        NSString *sql = [NSString stringWithFormat:@"SELECT * FROM %@ WHERE uid = '%@'",WZM_USER,uid];
-//        NSArray *list = [[WZMChatSqliteManager shareManager] selectWithSql:sql];
+//        NSArray *list = [[ADSChatSqliteManager shareManager] selectWithSql:sql];
 //        if (list.count > 0) {
 //            WZMChatUserModel *model = [WZMChatUserModel modelWithDic:list.firstObject];
 //            return model;
@@ -95,7 +95,7 @@ class WZMChatDBManager: NSObject {
 //    //删除用户
 //    - (void)deleteUserModel:(NSString *)uid {
 //        NSString *sql = [NSString stringWithFormat:@"DELETE FROM %@ WHERE uid = '%@'",WZM_USER,uid];
-//        [[WZMChatSqliteManager shareManager] execute:sql];
+//        [[ADSChatSqliteManager shareManager] execute:sql];
 //        //同时删除对应的会话和消息记录
 //        [self deleteSessionModel:uid];
 //        [self deleteMessageWithUid:uid];
@@ -105,7 +105,7 @@ class WZMChatDBManager: NSObject {
 //    //所有群
 //    - (NSMutableArray *)groups {
 //        NSString *sql = [NSString stringWithFormat:@"SELECT * FROM %@",WZM_GROUP];
-//        NSArray *list = [[WZMChatSqliteManager shareManager] selectWithSql:sql];
+//        NSArray *list = [[ADSChatSqliteManager shareManager] selectWithSql:sql];
 //        NSMutableArray *arr = [NSMutableArray arrayWithCapacity:list.count];
 //        for (NSDictionary *dic in list) {
 //            WZMChatGroupModel *model = [WZMChatGroupModel modelWithDic:dic];
@@ -116,18 +116,18 @@ class WZMChatDBManager: NSObject {
 //
 //    //添加群
 //    - (void)insertGroupModel:(WZMChatGroupModel *)model {
-//        [[WZMChatSqliteManager shareManager] insertModel:model tableName:WZM_GROUP];
+//        [[ADSChatSqliteManager shareManager] insertModel:model tableName:WZM_GROUP];
 //    }
 //
 //    //更新群
 //    - (void)updateGroupModel:(WZMChatGroupModel *)model {
-//        [[WZMChatSqliteManager shareManager] updateModel:model tableName:WZM_GROUP primkey:@"gid"];
+//        [[ADSChatSqliteManager shareManager] updateModel:model tableName:WZM_GROUP primkey:@"gid"];
 //    }
 //
 //    //查询群
 //    - (WZMChatGroupModel *)selectGroupModel:(NSString *)gid {
 //        NSString *sql = [NSString stringWithFormat:@"SELECT * FROM %@ WHERE gid = '%@'",WZM_GROUP,gid];
-//        NSArray *list = [[WZMChatSqliteManager shareManager] selectWithSql:sql];
+//        NSArray *list = [[ADSChatSqliteManager shareManager] selectWithSql:sql];
 //        if (list.count > 0) {
 //            WZMChatGroupModel *model = [WZMChatGroupModel modelWithDic:list.firstObject];
 //            return model;
@@ -138,7 +138,7 @@ class WZMChatDBManager: NSObject {
 //    //删除群
 //    - (void)deleteGroupModel:(NSString *)gid {
 //        NSString *sql = [NSString stringWithFormat:@"DELETE FROM %@ WHERE gid = '%@'",WZM_GROUP,gid];
-//        [[WZMChatSqliteManager shareManager] execute:sql];
+//        [[ADSChatSqliteManager shareManager] execute:sql];
 //        //同时删除对应的会话和消息记录
 //        [self deleteSessionModel:gid];
 //        [self deleteMessageWithGid:gid];
@@ -148,7 +148,7 @@ class WZMChatDBManager: NSObject {
 //    //所有会话
 //    - (NSMutableArray *)sessions {
 //        NSString *sql = [NSString stringWithFormat:@"SELECT * FROM %@",WZM_SESSION];
-//        NSArray *list = [[WZMChatSqliteManager shareManager] selectWithSql:sql];
+//        NSArray *list = [[ADSChatSqliteManager shareManager] selectWithSql:sql];
 //        NSMutableArray *arr = [NSMutableArray arrayWithCapacity:list.count];
 //        for (NSDictionary *dic in list) {
 //            WZMChatSessionModel *model = [WZMChatSessionModel modelWithDic:dic];
@@ -160,12 +160,12 @@ class WZMChatDBManager: NSObject {
 //
 //    //添加会话
 //    - (void)insertSessionModel:(WZMChatSessionModel *)model {
-//        [[WZMChatSqliteManager shareManager] insertModel:model tableName:WZM_SESSION];
+//        [[ADSChatSqliteManager shareManager] insertModel:model tableName:WZM_SESSION];
 //    }
 //
 //    //更新会话
 //    - (void)updateSessionModel:(WZMChatSessionModel *)model {
-//        [[WZMChatSqliteManager shareManager] updateModel:model tableName:WZM_SESSION primkey:@"sid"];
+//        [[ADSChatSqliteManager shareManager] updateModel:model tableName:WZM_SESSION primkey:@"sid"];
 //    }
 //
 //    //查询私聊会话
@@ -196,7 +196,7 @@ class WZMChatDBManager: NSObject {
 //            isGroup = YES;
 //        }
 //        NSString *sql = [NSString stringWithFormat:@"SELECT * FROM %@ WHERE sid = '%@'",WZM_SESSION,sid];
-//        NSArray *list = [[WZMChatSqliteManager shareManager] selectWithSql:sql];
+//        NSArray *list = [[ADSChatSqliteManager shareManager] selectWithSql:sql];
 //        WZMChatSessionModel *session;
 //        if (list.count > 0) {
 //            session = [WZMChatSessionModel modelWithDic:list.firstObject];
@@ -220,7 +220,7 @@ class WZMChatDBManager: NSObject {
 //    //删除会话
 //    - (void)deleteSessionModel:(NSString *)sid {
 //        NSString *sql = [NSString stringWithFormat:@"DELETE FROM %@ WHERE sid = '%@'",WZM_SESSION,sid];
-//        [[WZMChatSqliteManager shareManager] execute:sql];
+//        [[ADSChatSqliteManager shareManager] execute:sql];
 //    }
 //
 //    ///查询会话对应的用户或者群聊
@@ -247,26 +247,18 @@ class WZMChatDBManager: NSObject {
 //    //删除私聊消息记录
 //    - (void)deleteMessageWithUid:(NSString *)uid {
 //        NSString *tableName = [self tableNameWithUid:uid];
-//        [[WZMChatSqliteManager shareManager] deleteTableName:tableName];
+//        [[ADSChatSqliteManager shareManager] deleteTableName:tableName];
 //    }
 //
 //    //删除群聊消息记录
 //    - (void)deleteMessageWithGid:(NSString *)gid {
 //        NSString *tableName = [self tableNameWithUid:gid];
-//        [[WZMChatSqliteManager shareManager] deleteTableName:tableName];
+//        [[ADSChatSqliteManager shareManager] deleteTableName:tableName];
 //    }
 //
     
 //
-//    //插入私聊消息
-//    - (void)insertMessage:(WZMChatMessageModel *)message chatWithUser:(WZMChatUserModel *)model {
-//        [self insertMessage:message chatWithModel:model];
-//    }
-//
-//    //插入群聊消息
-//    - (void)insertMessage:(WZMChatMessageModel *)message chatWithGroup:(WZMChatGroupModel *)model {
-//        [self insertMessage:message chatWithModel:model];
-//    }
+
 //
 //    //private
 //    - (void)insertMessage:(WZMChatMessageModel *)message chatWithModel:(WZMChatBaseModel *)model{
@@ -276,35 +268,47 @@ class WZMChatDBManager: NSObject {
 //        [self updateSessionModel:session];
 //
 //        NSString *tableName = [self tableNameWithModel:model];
-//        [[WZMChatSqliteManager shareManager] createTableName:tableName modelClass:[message class] hasId:YES];
-//        [[WZMChatSqliteManager shareManager] insertModel:message tableName:tableName];
+//        [[ADSChatSqliteManager shareManager] createTableName:tableName modelClass:[message class] hasId:YES];
+//        [[ADSChatSqliteManager shareManager] insertModel:message tableName:tableName];
 //    }
 //
-//    //更新私聊消息
-//    - (void)updateMessageModel:(WZMChatMessageModel *)message chatWithUser:(WZMChatUserModel *)model {
-//        NSString *tableName = [self tableNameWithModel:model];
-//        [[WZMChatSqliteManager shareManager] updateModel:message tableName:tableName primkey:@"mid"];
-//    }
-//
-//    //更新群聊消息
-//    - (void)updateMessageModel:(WZMChatMessageModel *)message chatWithGroup:(WZMChatGroupModel *)model {
-//        NSString *tableName = [self tableNameWithModel:model];
-//        [[WZMChatSqliteManager shareManager] updateModel:message tableName:tableName primkey:@"mid"];
-//    }
+
 //
 //    //删除私聊消息
 //    - (void)deleteMessageModel:(WZMChatMessageModel *)message chatWithUser:(WZMChatUserModel *)model {
 //        NSString *tableName = [self tableNameWithModel:model];
-//        [[WZMChatSqliteManager shareManager] deleteModel:message tableName:tableName primkey:@"mid"];
+//        [[ADSChatSqliteManager shareManager] deleteModel:message tableName:tableName primkey:@"mid"];
 //    }
 //
 //    //删除群聊消息
 //    - (void)deleteMessageModel:(WZMChatMessageModel *)message chatWithGroup:(WZMChatGroupModel *)model {
 //        NSString *tableName = [self tableNameWithModel:model];
-//        [[WZMChatSqliteManager shareManager] deleteModel:message tableName:tableName primkey:@"mid"];
+//        [[ADSChatSqliteManager shareManager] deleteModel:message tableName:tableName primkey:@"mid"];
 //    }
 //
     
+    // 更新私聊消息
+    func updateMessageModel(message: ADSChatMessageModel, userModel: ADSChatUserModel) {
+        let messageTable = self.chatSqliteManager.getMessageTable(model: userModel)!
+        messageTable.updateMessageModel(messageId: message.mid, messageModel: message)
+    }
+    // 更新群聊消息
+    func updateMessageModel(message: ADSChatMessageModel, groupModel: ADSChatGroupModel) {
+        let messageTable = self.chatSqliteManager.getMessageTable(model: message)!
+        messageTable.updateMessageModel(messageId: message.mid, messageModel: message)
+    }
+    
+    // 插入私聊消息
+    func insertMessage(message: ADSChatMessageModel, userModel: ADSChatUserModel) {
+        let messageTable = self.chatSqliteManager.getMessageTable(model: userModel)!
+        messageTable.insertMessageModel(messageModel: message)
+    }
+    
+    // 插入群聊消息
+    func insertMessage(message: ADSChatMessageModel, groupModel: ADSChatGroupModel) {
+        let messageTable = self.chatSqliteManager.getMessageTable(model: groupModel)!
+        messageTable.insertMessageModel(messageModel: message)
+    }
     
     // 创建用户/群聊消息表，以用户的userid作为表名
     func createMessageTableName(model: ADSChatBaseModel) -> ChatMessageModelTable {

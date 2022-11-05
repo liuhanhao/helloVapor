@@ -1,5 +1,5 @@
 //
-//  WZMChatMessageCell.swift
+//  ADSChatMessageCell.swift
 //  VaporChat
 //
 //  Created by admin on 2022/11/1.
@@ -8,7 +8,7 @@
 import Foundation
 import UIKit
 
-class WZMChatMessageCell: WZMChatBaseCell {
+class ADSChatMessageCell: ADSChatBaseCell {
 
     var nickLabel: UILabel = UILabel.init()
     var avatarImageView: UIImageView = UIImageView.init()
@@ -124,7 +124,7 @@ class WZMChatMessageCell: WZMChatBaseCell {
             else {
                 self.nickLabel.isHidden = true
                 //聊天气泡
-                self.bubbleImageView.frame = CGRect.init(x: self.avatarImageView.chat_maxX+5, y: self.avatarImageView.chat_minY, width: model.modelW+17, height: height: model.modelH+10)
+                self.bubbleImageView.frame = CGRect.init(x: self.avatarImageView.chat_maxX+5, y: self.avatarImageView.chat_minY, width: model.modelW+17, height: model.modelH+10)
             }
             self.bubbleImageView.image = ADSChatHelper.sharedHelper.receiverBubbleImage
             

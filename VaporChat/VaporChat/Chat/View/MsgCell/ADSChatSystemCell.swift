@@ -1,5 +1,5 @@
 //
-//  WZMChatSystemCell.swift
+//  ADSChatSystemCell.swift
 //  VaporChat
 //
 //  Created by admin on 2022/11/1.
@@ -8,7 +8,7 @@
 import Foundation
 import UIKit
 
-class WZMChatSystemCell: WZMChatBaseCell {
+class ADSChatSystemCell: ADSChatBaseCell {
 
     var messageLabel: UILabel = UILabel.init()
     

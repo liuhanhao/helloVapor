@@ -1,5 +1,5 @@
 //
-//  WZMBaseInputView.swift
+//  ADSBaseInputView.swift
 //  VaporChat
 //
 //  Created by admin on 2022/10/17.
@@ -7,7 +7,7 @@
 
 import UIKit
 
-class WZMBaseInputView: UIView,UITextViewDelegate,UITextFieldDelegate {
+class ADSBaseInputView: UIView,UITextViewDelegate,UITextFieldDelegate {
 
     ///初始y值
     var startY: CGFloat = 0.0
@@ -66,7 +66,7 @@ class WZMBaseInputView: UIView,UITextViewDelegate,UITextFieldDelegate {
     func prepareInit() {
         self.startY = -1
         self.type = ADSKeyboardType.ADSKeyboardTypeIdle
-        NotificationCenter.default.addObserver(self, selector: #selector(WZMBaseInputView.keyboardValueChange(notification:)), name: WZMBaseInputView.keyboardWillChangeFrameNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(ADSBaseInputView.keyboardValueChange(notification:)), name: ADSBaseInputView.keyboardWillChangeFrameNotification, object: nil)
     }
     
     func createViews() {
@@ -83,14 +83,14 @@ class WZMBaseInputView: UIView,UITextViewDelegate,UITextFieldDelegate {
             if view.isKind(of: UITextField.self) {
                 self.inputView2 = view as? UITextField
                 self.inputView2?.delegate = self
-                NotificationCenter.default.addObserver(self, selector: #selector(WZMBaseInputView.textFieldDidChange(notification:)), name: UITextField.textDidChangeNotification, object: nil)
+                NotificationCenter.default.addObserver(self, selector: #selector(ADSBaseInputView.textFieldDidChange(notification:)), name: UITextField.textDidChangeNotification, object: nil)
                 break
             }
         }
         self.addSubview(self.toolView!)
         self.keyboards = self.keyboardsOfInputView()
-        for i in 0..<self.toolView!.subviews.count {
-            let keyboard = self.toolView!.subviews[i]
+        for i in 0..<self.keyboards.count {
+            let keyboard = self.keyboards[i]
             keyboard.isHidden = true
             self.addSubview(keyboard)
         }
@@ -113,11 +113,8 @@ class WZMBaseInputView: UIView,UITextViewDelegate,UITextFieldDelegate {
         var number: NSNumber = dic["UIKeyboardAnimationDurationUserInfoKey"] as! NSNumber
         let duration: CGFloat = CGFloat(number.floatValue)
         
-        number = dic["UIKeyboardFrameBeginUserInfoKey"] as! NSNumber
-        let beginFrame: CGRect = number.cgRectValue
-        
-        number = dic["UIKeyboardFrameEndUserInfoKey"] as! NSNumber
-        let endFrame: CGRect = number.cgRectValue
+        let beginFrame: CGRect = dic["UIKeyboardFrameBeginUserInfoKey"] as! CGRect
+        let endFrame: CGRect = dic["UIKeyboardFrameEndUserInfoKey"] as! CGRect
 
         if beginFrame.origin.y < endFrame.origin.y {
             if self.keyboardIndex == -1 {

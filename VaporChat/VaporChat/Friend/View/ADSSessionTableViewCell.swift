@@ -1,5 +1,5 @@
 //
-//  WZMSessionTableViewCell.swift
+//  ADSSessionTableViewCell.swift
 //  VaporChat
 //
 //  Created by admin on 2022/10/26.
@@ -7,7 +7,7 @@
 
 import UIKit
 
-class WZMSessionTableViewCell: UITableViewCell {
+class ADSSessionTableViewCell: UITableViewCell {
 
     var _avatarImageView: UIImageView = UIImageView.init()
     var _badgeView: UIView = UIView.init()

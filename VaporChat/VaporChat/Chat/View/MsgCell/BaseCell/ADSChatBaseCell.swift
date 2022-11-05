@@ -1,5 +1,5 @@
 //
-//  WZMChatBaseCell.swift
+//  ADSChatBaseCell.swift
 //  VaporChat
 //
 //  Created by admin on 2022/11/1.
@@ -7,7 +7,7 @@
 
 import UIKit
 
-class WZMChatBaseCell: UITableViewCell {
+class ADSChatBaseCell: UITableViewCell {
 
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
