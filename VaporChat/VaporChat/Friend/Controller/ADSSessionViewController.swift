@@ -7,14 +7,14 @@
 
 import UIKit
 
-class ADSSessionViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
+class ADSSessionViewController: ADSBaseViewController, UITableViewDelegate, UITableViewDataSource {
 
     var sessions: [ADSChatSessionModel] = []
     var isRefreshSession: Bool = false
     
     var type: Int = 1
     
-    lazy var tableView = {
+    lazy var tableView: UITableView = {
         var rect = self.view.bounds
         rect.origin.y = self.CHAT_NAV_BAR_H()
         rect.size.height = rect.size.height - (self.CHAT_NAV_BAR_H() + self.CHAT_TAB_BAR_H())

@@ -54,7 +54,7 @@ class ADSRecordAnimation: UIImageView {
         self.begin = true
         _nowTime = self.nowTimestamp()
         if self.superview == nil {
-            let window:UIWindow! = UIApplication.shared.delegate!.window!
+            let window:UIWindow! = UIApplication.shared.keyWindow
             window.addSubview(self)
             self.showVoiceAnimation()
         }

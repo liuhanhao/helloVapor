@@ -14,20 +14,17 @@ class ADSInputHelper: NSObject {
     
     var lxhPath:String {
         get {
-            guard let path = Bundle.main.path(forResource: "WZMEmoticon", ofType: "bundle") else { return "" }
-            return path + "/emoticon_lxh"
+            return Bundle.main.bundlePath
         }
     }
     var otherPath:String {
         get {
-            guard let path = Bundle.main.path(forResource: "WZMEmoticon", ofType: "bundle") else { return "" }
-            return path + "/emoticon_other"
+            return Bundle.main.bundlePath
         }
     }
     var defaultPath:String {
         get {
-            guard let path = Bundle.main.path(forResource: "WZMEmoticon", ofType: "bundle") else { return "" }
-            return path + "/emoticon_default"
+            return Bundle.main.bundlePath
         }
     }
     
@@ -191,7 +188,7 @@ class ADSInputHelper: NSObject {
         let helper = ADSInputHelper.sharedHelper
         var image:UIImage? = helper.otherCache[name]
         if image == nil {
-            let path = helper.otherPath + "/" + "name"
+            let path = helper.otherPath + "/" + fileName
             image = UIImage.init(contentsOfFile: path)
         }
         
@@ -215,18 +212,18 @@ class ADSInputHelper: NSObject {
         }
         
         let helper = ADSInputHelper.sharedHelper
-        var image:UIImage? = helper.emoticonCache[name]
+        var image:UIImage? = helper.emoticonCache[fileName]
         if image == nil {
-            let path = helper.lxhPath + "/" + "name"
+            let path = helper.lxhPath + "/" + fileName
             image = UIImage.init(contentsOfFile: path)
         }
         if image == nil {
-            let path = helper.defaultPath + "/" + "name"
+            let path = helper.defaultPath + "/" + fileName
             image = UIImage.init(contentsOfFile: path)
         }
         
         if image != nil {
-            helper.emoticonCache[name] = image
+            helper.emoticonCache[fileName] = image
         }
         
         return image

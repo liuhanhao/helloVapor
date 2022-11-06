@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0C0E995F2917A88E00073D80 /* ADSBaseViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0E995E2917A88E00073D80 /* ADSBaseViewController.swift */; };
 		0CE249DC28E0537000B92101 /* ADSInputBtn.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CE249C628E0537000B92101 /* ADSInputBtn.swift */; };
 		0CE249DD28E0537000B92101 /* ADSToolView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CE249C828E0537000B92101 /* ADSToolView.swift */; };
 		0CE249DE28E0537000B92101 /* ADSRecordAnimation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CE249C928E0537000B92101 /* ADSRecordAnimation.swift */; };
@@ -485,6 +486,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		0C0E995E2917A88E00073D80 /* ADSBaseViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADSBaseViewController.swift; sourceTree = "<group>"; };
 		0CE249C628E0537000B92101 /* ADSInputBtn.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ADSInputBtn.swift; sourceTree = "<group>"; };
 		0CE249C828E0537000B92101 /* ADSToolView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ADSToolView.swift; sourceTree = "<group>"; };
 		0CE249C928E0537000B92101 /* ADSRecordAnimation.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ADSRecordAnimation.swift; sourceTree = "<group>"; };
@@ -1189,6 +1191,7 @@
 				348BE42828D04F0A008E30CE /* Helper */,
 				348BE40E28D04E0E008E30CE /* AppDelegate.swift */,
 				348BE41028D04E0E008E30CE /* SceneDelegate.swift */,
+				0C0E995E2917A88E00073D80 /* ADSBaseViewController.swift */,
 				34F002C9290945DE00815C2F /* Session */,
 				34F002C8290945BA00815C2F /* Friend */,
 				34B3464328D1C78600E30323 /* Chat */,
@@ -2453,6 +2456,7 @@
 				34B3465328D1CE5200E30323 /* ADSChatBaseModel.swift in Sources */,
 				348BE42728D04E76008E30CE /* ADSChatURL.swift in Sources */,
 				348BE49128D07646008E30CE /* UIImage+TSExtension.swift in Sources */,
+				0C0E995F2917A88E00073D80 /* ADSBaseViewController.swift in Sources */,
 				34BB868F28D0773400362FB9 /* JRefreshAutoGifFooter.swift in Sources */,
 				348BE44E28D055D3008E30CE /* ADSHexadecimal.swift in Sources */,
 				348BE42B28D04F0A008E30CE /* ADSInputHelper.swift in Sources */,

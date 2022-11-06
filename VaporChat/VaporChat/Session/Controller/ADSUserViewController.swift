@@ -7,11 +7,11 @@
 
 import UIKit
 
-class ADSUserViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
+class ADSUserViewController: ADSBaseViewController, UITableViewDelegate, UITableViewDataSource {
     
     var users: [ADSChatUserModel] = []
     
-    lazy var tableView = {
+    lazy var tableView: UITableView = {
         var rect = self.view.bounds
         rect.origin.y = self.CHAT_NAV_BAR_H()
         rect.size.height = rect.size.height - (self.CHAT_NAV_BAR_H() + self.CHAT_TAB_BAR_H())

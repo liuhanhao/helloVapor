@@ -10,12 +10,12 @@ import UIKit
 let WZM_LOADING_HEADER = 50.0
 
 // ,UITableViewDelegate,UITableViewDataSource,UIGestureRecognizerDelegate
-class ADSChatViewController: UIViewController,UITableViewDelegate,UITableViewDataSource,UIGestureRecognizerDelegate,WZMInputViewDelegate {
+class ADSChatViewController: ADSBaseViewController,UITableViewDelegate,UITableViewDataSource,UIGestureRecognizerDelegate,WZMInputViewDelegate {
     
     ///列表相关
     var tableViewY: CGFloat = NSObject.init().CHAT_NAV_BAR_H()
     var messageModels: [ADSChatMessageModel] = []
-    lazy var tableView = {
+    lazy var tableView: UITableView = {
         var rect = self.view.bounds
         rect.origin.y = self.tableViewY
         rect.size.height = rect.size.height - (self.tableViewY + self.myInputView.toolViewH)

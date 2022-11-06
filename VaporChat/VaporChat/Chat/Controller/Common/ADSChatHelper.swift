@@ -164,9 +164,9 @@ class ADSChatHelper: NSObject {
     func getImageWithUrl(urlString: String, isUseCatch: Bool, completion: @escaping (_ image: UIImage?)->()?) -> UIImage? {
         let rd = self.getDataWithUrl(urlString: urlString, isUseCatch: isUseCatch) { data in
             if data != nil {
-                completion(UIImage.init(data: data!))
+                return completion(UIImage.init(data: data!))
             } else {
-                completion(nil)
+                return completion(nil)
             }
         }
         
