@@ -43,14 +43,19 @@ final class Mine: Fields {
     @Field(key: "nickname")
     var nickname: String
     
+    // 消息类型（text/image/audio/video）；旧数据缺省按 text 解读
+    @OptionalField(key: "msgType")
+    var msgType: String?
+    
     init() {}
-    init(avatar: String = "default", content: String, mine: Bool, userId: String, username: String, nickname: String) {
+    init(avatar: String = "default", content: String, mine: Bool, userId: String, username: String, nickname: String, msgType: String = "text") {
         self.avatar = avatar
         self.content = content
         self.mine = mine
         self.userId = userId
         self.username = username
         self.nickname = nickname
+        self.msgType = msgType
     }
 }
 /*****************   Mine   *********************************/
@@ -122,6 +127,21 @@ final class ChatMessage: Model, Content {
         self.mine = mine
         self.to = to
 //        self.$galaxy.id = galaxyID
+    }
+}
+
+// message 表新增 msgType 字段的迁移（旧数据为 NULL，读取时按 text 解读）
+struct AddMessageMsgType: AsyncMigration {
+    func prepare(on database: Database) async throws {
+        try await database.schema("message")
+            .field("mine_msgType", .string)
+            .update()
+    }
+
+    func revert(on database: Database) async throws {
+        try await database.schema("message")
+            .deleteField("mine_msgType")
+            .update()
     }
 }
 

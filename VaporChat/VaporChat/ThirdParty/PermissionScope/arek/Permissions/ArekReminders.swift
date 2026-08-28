@@ -40,12 +40,14 @@ open class ArekReminders: ArekBasePermission, ArekPermissionProtocol {
     open func status(completion: @escaping ArekPermissionResponse) {
         let status = EKEventStore.authorizationStatus(for: .reminder)
         switch status {
-        case .authorized:
-            return completion(.authorized)
-        case .restricted, .denied:
-            return completion(.denied)
-        case .notDetermined:
-            return completion(.notDetermined)
+            case .authorized:
+                return completion(.authorized)
+            case .restricted, .denied:
+                return completion(.denied)
+            case .notDetermined:
+                return completion(.notDetermined)
+            default:
+                return completion(.denied)
         }
     }
     

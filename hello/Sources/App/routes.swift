@@ -11,11 +11,16 @@ func routes(_ app: Application) throws {
     
     ///所有常见的 HTTP 方法都可以作为 Application 的方法使用。它们接受一个或多个字符串参数，这些字符串参数表示请求路径，以 / 分隔。
     // 注册用户
-    app.post("chat", "registered") { req async throws -> User in
+    app.post("chat", "registered") { req async throws -> User.Public in
         
         let create = try req.content.decode(User.Create.self)
         guard create.password == create.confirmPassword else {
-            throw Abort(.badRequest, reason: "Passwords did not match")
+            throw Abort(.badRequest, reason: "两次输入的密码不一致")
+        }
+        // 账号唯一性校验，避免直接报唯一约束错误
+        let existing = try await User.query(on: req.db).filter(\.$account == create.account).first()
+        guard existing == nil else {
+            throw Abort(.conflict, reason: "账号已存在")
         }
         let user = try User(
             avatar: create.avatar,
@@ -24,77 +29,44 @@ func routes(_ app: Application) throws {
             passwordHash: Bcrypt.hash(create.password)
         )
         try await user.save(on: req.db)
-        return user
+        return user.toPublic()
     }
     
     // 登录
     // 该请求通过 Basic Auth 认证头传递用户名Username: test@volor.codes 和密码Password: ici42。你应该会看到返回了之前创建的用户。
-    // 虽然理论上可以使用基本身份验证来保护所有端点，但建议使用单独的令牌。这可以最大限度地减少你必须通过 Internet 发送用户敏感密码的频率。它还使身份验证速度更快，因为在登录期间只需要执行密码散列。
+    // 虽然理论上可以使用基本身份验证来保护所有端点，但建议使用单独的令牌。这可以最大限度地减少你必须通过 Internet 发送用户敏感密码的频率。它还使身份验证速度更快，因为在登录期间只需要密码散列。
     let passwordProtected = app.grouped(User.authenticator())
     passwordProtected.post("chat", "login") { req async throws -> UserToken in
         let user = try req.auth.require(User.self)
-        // 这里的逻辑后面再补
-        if (user.account == "123@qq.com") {
-            print("密码验证通过")
-        }
         
         let token = try user.generateToken()
         try await token.save(on: req.db)
         return token
     }
     
-    // 路由验证保护
+    // 路由验证保护：返回当前登录用户信息（不含密码散列）
     let tokenProtected = app.grouped(UserToken.authenticator())
-    tokenProtected.get("chat", "me") { req -> User in
-        try req.auth.require(User.self)
+    tokenProtected.get("chat", "me") { req -> User.Public in
+        try req.auth.require(User.self).toPublic()
     }
 
-    // 当请 request body 被流处理时，req.body.data 会是 nil， 你必须使用 req.body.drain 来处理每个被发送到你的路由数据块。
-    // Request body will not be collected into a buffer.
-    // 上传文件接口
-    app.on(.POST, "chat", "uploadFile", body: .stream) { request async -> String in
-        // 创造一个预先成功的 future。
-        let resultsPromise: EventLoopPromise<String> = request.eventLoop.makePromise(of: String.self)
-        // 创造一个预先失败的 future。
-//        let futureString: EventLoopFuture<String> = eventLoop.makeFailedFuture(error)
-
-        var fileData = ByteBuffer.init()
-        // 这个方法是同步的
-        request.body.drain { bodyStream in
-            switch bodyStream {
-            case .buffer(let buffer): // 分多次读取body流在这个分支返回
-                var currentBuffer = ByteBuffer.init(buffer: buffer)
-                fileData.writeBuffer(&currentBuffer) // 叠加流
-                return request.eventLoop.makeSucceededVoidFuture()
-            case .end: // 流读取完成  将缓冲区数据写入文件
-                resultsPromise.succeed("success")
-                return request.fileio.writeFile(fileData, at: app.directory.workingDirectory + "uploadFile/666.jpg")
-            case .error(let error):
-                resultsPromise.fail(error)
-                return request.eventLoop.makeFailedFuture(error)
-            }
-        }
-        
-        // 创建一个信号等待
-        let resultsFuture: EventLoopFuture<String> = resultsPromise.futureResult
-        let results = try! resultsFuture.wait()
-        
-        return results
-        
+    // 会话列表：按联系人分组返回对方身份与最后一条消息，按最后消息时间倒序
+    tokenProtected.get("chat", "sessions") { req async throws -> [SessionSummaryDTO] in
+        try await ChatHistoryController.sessions(req: req)
     }
-    
-    app.on(.POST, "chat", "downloadFile") { request -> Response in
-//        // 异步流文件作为HTTP响应。
-//        request.fileio.streamFile(at: "/path/to/file").map { res in
-//            print(res) // 响应
-//        }
 
-        // 同步
-        // streamFile 方法将文件流转换为 Response。 此方法将自动设置适当的响应头，例如 ETag 和 Content-Type。
-        let result = request.fileio.streamFile(at: app.directory.workingDirectory + "uploadFile/666.jpg")
-        print(result)
+    // 历史消息：与指定联系人的双方消息按时间正序分页返回
+    tokenProtected.get("chat", "history") { req async throws -> HistoryResponseDTO in
+        try await ChatHistoryController.history(req: req)
+    }
 
-        return result
+    // 媒体文件上传（issue 03）：标准 multipart 表单（msgType + file），
+    // 按 msgType 校验类型与大小，UUID 命名存入 Public/uploads/，返回文件 URL。
+    // 替代原先硬编码单一文件（uploadFile/666.jpg）的上传下载接口。
+    // body 收集上限取各类型上限中最大者（视频 100MB），超限请求直接被拒；
+    // 各类型的具体上限在 UploadRules 中集中配置。
+    tokenProtected.on(.POST, "chat", "upload", body: .collect(maxSize: ByteCount(value: UploadRules.largestMaxBytes))) { req async throws -> UploadResponseDTO in
+        try await UploadController.upload(req: req)
     }
     
     app.webSocket("chat", "webSocket") { request, ws in

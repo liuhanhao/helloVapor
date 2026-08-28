@@ -39,12 +39,14 @@ open class ArekContacts: ArekBasePermission, ArekPermissionProtocol {
     
     open func status(completion: @escaping ArekPermissionResponse) {
         switch Contacts.CNContactStore.authorizationStatus(for: CNEntityType.contacts) {
-        case .authorized:
-            return completion(.authorized)
-        case .denied, .restricted:
-            return completion(.denied)
-        case .notDetermined:
-            return completion(.notDetermined)
+            case .authorized:
+                return completion(.authorized)
+            case .denied, .restricted:
+                return completion(.denied)
+            case .notDetermined:
+                return completion(.notDetermined)
+            default:
+                return completion(.denied)
         }
     }
     

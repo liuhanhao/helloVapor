@@ -70,6 +70,20 @@ extension User {
     }
 }
 
+// 对外返回的用户信息（不含密码散列）
+extension User {
+    struct Public: Content {
+        var id: UUID?
+        var avatar: String
+        var nickname: String
+        var account: String
+    }
+
+    func toPublic() -> Public {
+        Public(id: id, avatar: avatar, nickname: nickname, account: account)
+    }
+}
+
 // 可认证的模型
 extension User: ModelAuthenticatable {
     static let usernameKey = \User.$account
