@@ -6,6 +6,9 @@ export interface UserInfo {
   account: string
 }
 
+// 会话形态：单聊（与一位联系人） / 群聊（在一个群内）
+export type SessionKind = 'direct' | 'group'
+
 // 聊天窗口中的一条消息
 export interface MessageItem {
   // 本地自增序号，用作列表 key
@@ -14,6 +17,8 @@ export interface MessageItem {
   id?: string
   // 是否由当前用户发出（决定气泡左右）
   fromSelf: boolean
+  // 发送者昵称：群聊气泡靠它显示是谁说的（单聊与自己的消息不显示）
+  senderNickname?: string
   content: string
   // 消息类型；服务端缺省按 text 处理
   msgType: string
@@ -29,7 +34,9 @@ export interface MessageItem {
   error?: string
 }
 
-// 会话列表中的联系人（对方用户）身份
+// 会话列表项中的收件主体身份：单聊为联系人（对方用户），群聊为群
+// （群聊时 userid 是群 id、nickname 是群名、avatar 是群头像，username 无意义为空串）
+// 字段名沿用服务端 JSON 的 peer
 export interface SessionPeer {
   userid: string
   username: string
@@ -37,8 +44,10 @@ export interface SessionPeer {
   avatar: string
 }
 
-// 会话列表项：联系人 + 最后一条消息
+// 会话列表项：收件主体 + 最后一条消息
 export interface SessionSummary {
+  // 会话形态：单聊与群聊条目混排在同一列表里，读 peer 前先看 kind
+  kind: SessionKind
   peer: SessionPeer
   lastMessage: {
     content: string
@@ -47,6 +56,8 @@ export interface SessionSummary {
     // 毫秒时间戳（0 表示尚无消息）
     createdAt: number
   }
+  // 群成员数，仅群聊条目有值
+  memberCount?: number
 }
 
 // 历史消息接口返回的单条消息
@@ -57,6 +68,22 @@ export interface HistoryMessage {
   fromSelf: boolean
   // 毫秒时间戳
   createdAt: number
+  // 发送者昵称：群聊气泡靠它显示是谁说的（单聊也一并返回，前端无需分支取数）
+  senderNickname: string
+}
+
+// 群：只取界面需要的字段（服务端 /chat/groups 返回的字段子集）
+export interface GroupSummary {
+  id: string
+  name: string
+  memberCount: number
+}
+
+// 群成员（成员列表项）
+export interface GroupMember {
+  userid: string
+  nickname: string
+  username: string
 }
 
 // 历史消息分页结果（messages 按时间正序）
@@ -86,6 +113,8 @@ export interface ChatPayload {
       userid: string
       username: string
       nickname: string
+      // 收件主体类型：user（缺省） / group；群聊时 userid 位置填群 id
+      type?: 'user' | 'group'
     }
   }
 }
@@ -97,5 +126,13 @@ export interface ChatAck {
     id?: string
     timestamp?: number
     content?: string
+  }
+}
+
+// 服务端拒收消息时下发的错误帧（chatMessageError，如发消息时已不是群成员）
+export interface ChatErrorMessage {
+  type: string
+  data?: {
+    reason?: string
   }
 }

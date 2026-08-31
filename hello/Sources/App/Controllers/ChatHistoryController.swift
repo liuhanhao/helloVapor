@@ -7,7 +7,8 @@
 import Vapor
 import Fluent
 
-// 会话列表项中的联系人（对方用户）身份
+// 会话列表项中的收件主体身份：单聊为对方用户，群聊为群
+// （群聊时 userid 是群 id、nickname 是群名、avatar 是群头像，username 无意义为空串）
 struct SessionPeerDTO: Content {
     var userid: String
     var username: String
@@ -24,10 +25,14 @@ struct SessionLastMessageDTO: Content {
     var createdAt: Double
 }
 
-// 会话列表项：联系人 + 最后一条消息
+// 会话列表项：收件主体 + 最后一条消息，带形态标记区分单聊与群聊
 struct SessionSummaryDTO: Content {
+    // 会话形态：direct（单聊） / group（群聊）
+    var kind: String
     var peer: SessionPeerDTO
     var lastMessage: SessionLastMessageDTO
+    // 群成员数，仅群聊条目有值
+    var memberCount: Int?
 }
 
 // 历史消息项
@@ -37,6 +42,10 @@ struct HistoryMessageDTO: Content {
     var msgType: String
     var fromSelf: Bool
     var createdAt: Double
+    // 发送者身份：群聊要靠它渲染昵称与头像（单聊不需要，但一并返回）
+    var senderUserId: String
+    var senderNickname: String
+    var senderAvatar: String
 }
 
 // 历史消息分页结果（messages 按时间正序）
@@ -47,74 +56,117 @@ struct HistoryResponseDTO: Content {
 
 enum ChatHistoryController {
 
-    // GET /chat/sessions —— 会话列表：按联系人分组，按最后消息时间倒序
+    // GET /chat/sessions —— 会话列表：单聊与群聊条目统一返回，按最后消息时间倒序
     static func sessions(req: Request) async throws -> [SessionSummaryDTO] {
         let user = try req.auth.require(User.self)
         let myId = try user.requireID().uuidString
+        let db = req.db
 
-        // 我参与的全部消息（发出 mine_userid = 我，收到 to_userid = 我），按时间倒序
-        let messages = try await ChatMessage.query(on: req.db)
-            .group(.or) { group in
-                group.filter([.string("mine_userid")], .equal, myId)
-                group.filter([.string("to_userid")], .equal, myId)
+        // 我加入的群：群会话只在我仍是成员期间可见（退群即失去该群访问权），
+        // 且只暴露入群之后的消息（重新加入不回溯旧消息）
+        let joined = try await GroupMember.query(on: db).filter(\.$userId == myId).all()
+        let myGroupIds = Array(Set(joined.map { $0.groupId }))
+        let joinedAtByGroupId = Dictionary(uniqueKeysWithValues: joined.compactMap { row in
+            row.joinedAt.map { (row.groupId, $0) }
+        })
+
+        // 我参与的会话消息：单聊（我发出 / 我收到）+ 我所在群的全部群消息，按时间倒序
+        let messages = try await ChatMessage.query(on: db)
+            .group(.or) { or in
+                or.group(.and) { direct in
+                    direct.filter([.string("to_type")], .equal, RecipientType.user.rawValue)
+                    direct.group(.or) { mine in
+                        mine.filter([.string("mine_userid")], .equal, myId)
+                        mine.filter([.string("to_id")], .equal, myId)
+                    }
+                }
+                if !myGroupIds.isEmpty {
+                    or.group(.and) { group in
+                        group.filter([.string("to_type")], .equal, RecipientType.group.rawValue)
+                        group.filter(\ChatMessage.$toId ~~ myGroupIds)
+                    }
+                }
             }
             .sort([.string("created_at")], .descending)
             .all()
 
-        // 联系人身份优先取 users 表（权威昵称/头像），无注册记录时回退消息内携带的身份
-        var usersById: [String: User] = [:]
-        let peerIds = Set(messages.map { $0.mine.userId == myId ? $0.to.userId : $0.mine.userId })
-        let peerUUIDs = peerIds.compactMap { UUID(uuidString: $0) }
-        if !peerUUIDs.isEmpty {
-            let found = try await User.query(on: req.db).filter(\.$id ~~ peerUUIDs).all()
-            usersById = Dictionary(uniqueKeysWithValues: found.compactMap { u in
-                u.id.map { ($0.uuidString, u) }
-            })
-        }
-
-        // 倒序遍历：每个联系人首次出现的那条即最新消息；出现顺序即会话排序
+        // 倒序遍历：每个收件主体首次出现的那条即最新消息；出现顺序即会话排序
         var seen = Set<String>()
-        var summaries: [SessionSummaryDTO] = []
+        var latest: [(kind: String, peerId: String, message: ChatMessage)] = []
         for message in messages {
-            let sentByMe = message.mine.userId == myId
-            let peerId = sentByMe ? message.to.userId : message.mine.userId
-            guard !seen.contains(peerId) else { continue }
-            seen.insert(peerId)
-            summaries.append(makeSummary(last: message, sentByMe: sentByMe, peerId: peerId, usersById: usersById))
+            let kind = message.toType == RecipientType.group.rawValue ? "group" : "direct"
+            // 群会话的收件主体是群（收发两个方向的 to 都是群）；单聊的收件主体是对方用户
+            let peerId = kind == "group" || message.mine.userId == myId ? message.toId : message.mine.userId
+            // 入群之前的群消息对自己不存在：否则会话列表会预览一条点进去读不到的消息
+            if kind == "group",
+               let joinedAt = joinedAtByGroupId[peerId],
+               let createdAt = message.createdAt,
+               createdAt < joinedAt { continue }
+            let key = "\(kind):\(peerId)"
+            guard !seen.contains(key) else { continue }
+            seen.insert(key)
+            latest.append((kind, peerId, message))
         }
-        return summaries
-    }
 
-    private static func makeSummary(
-        last: ChatMessage,
-        sentByMe: Bool,
-        peerId: String,
-        usersById: [String: User]
-    ) -> SessionSummaryDTO {
-        let peer: SessionPeerDTO
-        if let user = usersById[peerId] {
-            peer = SessionPeerDTO(userid: peerId, username: user.account, nickname: user.nickname, avatar: user.avatar)
-        } else if sentByMe {
-            peer = SessionPeerDTO(userid: peerId, username: last.to.username, nickname: last.to.nickname, avatar: last.to.avatar)
-        } else {
-            peer = SessionPeerDTO(userid: peerId, username: last.mine.username, nickname: last.mine.nickname, avatar: last.mine.avatar)
-        }
-        return SessionSummaryDTO(
-            peer: peer,
-            lastMessage: SessionLastMessageDTO(
-                content: last.mine.content,
-                msgType: last.mine.msgType ?? "text",
-                fromSelf: sentByMe,
-                createdAt: last.createdAt?.timeIntervalSince1970 ?? 0
+        // 收件主体身份：单聊优先取 users 表（权威昵称/头像），无注册记录时回退消息内携带的身份；
+        // 群聊取 groups 表（群名/头像）并附成员数
+        let usersById = try await usersById(on: db, ids: latest.filter { $0.kind == "direct" }.map { $0.peerId })
+        let groupIds = latest.filter { $0.kind == "group" }.map { $0.peerId }
+        let groupsById = try await groupsById(on: db, ids: groupIds)
+        let memberCounts = groupIds.isEmpty ? [:] : try await GroupMember.counts(on: db, groupIds: groupIds)
+
+        return latest.compactMap { item -> SessionSummaryDTO? in
+            let sentByMe = item.message.mine.userId == myId
+            let peer: SessionPeerDTO
+            if item.kind == "group" {
+                guard let group = groupsById[item.peerId] else { return nil }
+                peer = SessionPeerDTO(userid: item.peerId, username: "", nickname: group.name, avatar: group.avatar)
+            } else if let user = usersById[item.peerId] {
+                peer = SessionPeerDTO(userid: item.peerId, username: user.account, nickname: user.nickname, avatar: user.avatar)
+            } else if sentByMe {
+                peer = SessionPeerDTO(userid: item.peerId, username: item.message.to.username, nickname: item.message.to.nickname, avatar: item.message.to.avatar)
+            } else {
+                peer = SessionPeerDTO(userid: item.peerId, username: item.message.mine.username, nickname: item.message.mine.nickname, avatar: item.message.mine.avatar)
+            }
+            return SessionSummaryDTO(
+                kind: item.kind,
+                peer: peer,
+                lastMessage: SessionLastMessageDTO(
+                    content: item.message.mine.content,
+                    msgType: item.message.mine.msgType ?? "text",
+                    fromSelf: sentByMe,
+                    createdAt: item.message.createdAt?.timeIntervalSince1970 ?? 0
+                ),
+                memberCount: item.kind == "group" ? memberCounts[item.peerId] ?? 0 : nil
             )
-        )
+        }
     }
 
-    // GET /chat/history?peer=<userid>&limit=20&before=<unix秒>
-    // —— 与指定联系人的双方消息按时间正序返回，支持向前翻页
+    private static func usersById(on db: Database, ids: [String]) async throws -> [String: User] {
+        let uuids = ids.compactMap { UUID(uuidString: $0) }
+        guard !uuids.isEmpty else { return [:] }
+        let users = try await User.query(on: db).filter(\.$id ~~ uuids).all()
+        return Dictionary(uniqueKeysWithValues: users.compactMap { user in
+            user.id.map { ($0.uuidString, user) }
+        })
+    }
+
+    private static func groupsById(on db: Database, ids: [String]) async throws -> [String: Group] {
+        let uuids = ids.compactMap { UUID(uuidString: $0) }
+        guard !uuids.isEmpty else { return [:] }
+        let groups = try await Group.query(on: db).filter(\.$id ~~ uuids).all()
+        return Dictionary(uniqueKeysWithValues: groups.compactMap { group in
+            group.id.map { ($0.uuidString, group) }
+        })
+    }
+
+    // GET /chat/history?peer=<用户 id 或群 id>&limit=20&before=<unix秒>
+    // —— peer 是收件主体：命中群则按群历史返回（非成员被拒），否则按单聊历史返回，
+    // 两者都按时间正序、支持向前翻页
     static func history(req: Request) async throws -> HistoryResponseDTO {
         let user = try req.auth.require(User.self)
         let myId = try user.requireID().uuidString
+        let db = req.db
 
         struct HistoryQuery: Content {
             var peer: String?
@@ -125,24 +177,46 @@ enum ChatHistoryController {
         guard let peerId = query.peer?.trimmingCharacters(in: .whitespaces), !peerId.isEmpty else {
             throw Abort(.badRequest, reason: "缺少联系人参数 peer")
         }
-        guard peerId != myId else {
-            throw Abort(.badRequest, reason: "不能查询与自己账号的会话")
-        }
         let limit = min(max(query.limit ?? 20, 1), 100)
 
-        // 双方消息（我发给联系人、联系人发给我两个方向），按时间倒序取一页
-        let builder = ChatMessage.query(on: req.db)
-            .group(.or) { group in
+        // peer 命中群即按群历史处理，否则按单聊处理——群 id 与用户 id 同为 UUID，靠查表区分
+        var isGroup = false
+        if let uuid = UUID(uuidString: peerId) {
+            isGroup = try await Group.find(uuid, on: db) != nil
+        }
+        // 非成员查群历史直接拒绝，不返回空数组糊弄过去（退群即失去该群访问权）；
+        // 拿到的入群时间是「能看到哪些群消息」的起点——重新加入不回溯旧消息
+        var joinedAt: Double = 0
+        if isGroup {
+            joinedAt = try await GroupMember.requireMembership(groupId: peerId, userId: myId, on: db)
+                .joinedAt?.timeIntervalSince1970 ?? 0
+        } else {
+            guard peerId != myId else {
+                throw Abort(.badRequest, reason: "不能查询与自己账号的会话")
+            }
+        }
+
+        let builder = ChatMessage.query(on: db)
+        if isGroup {
+            builder.filter([.string("to_type")], .equal, RecipientType.group.rawValue)
+                   .filter(\ChatMessage.$toId == peerId)
+                   .filter([.string("created_at")], .greaterThanOrEqual, joinedAt)
+        } else {
+            // 单聊：双方两个方向的消息
+            builder.group(.or) { group in
                 group.group(.and) { inner in
+                    inner.filter([.string("to_type")], .equal, RecipientType.user.rawValue)
                     inner.filter([.string("mine_userid")], .equal, myId)
-                    inner.filter([.string("to_userid")], .equal, peerId)
+                    inner.filter([.string("to_id")], .equal, peerId)
                 }
                 group.group(.and) { inner in
+                    inner.filter([.string("to_type")], .equal, RecipientType.user.rawValue)
                     inner.filter([.string("mine_userid")], .equal, peerId)
-                    inner.filter([.string("to_userid")], .equal, myId)
+                    inner.filter([.string("to_id")], .equal, myId)
                 }
             }
-            .sort([.string("created_at")], .descending)
+        }
+        builder.sort([.string("created_at")], .descending)
         if let before = query.before {
             builder.filter([.string("created_at")], .lessThan, before)
         }
@@ -160,7 +234,10 @@ enum ChatHistoryController {
                     content: message.mine.content,
                     msgType: message.mine.msgType ?? "text",
                     fromSelf: message.mine.userId == myId,
-                    createdAt: message.createdAt?.timeIntervalSince1970 ?? 0
+                    createdAt: message.createdAt?.timeIntervalSince1970 ?? 0,
+                    senderUserId: message.mine.userId,
+                    senderNickname: message.mine.nickname,
+                    senderAvatar: message.mine.avatar
                 )
             },
             hasMore: hasMore

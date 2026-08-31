@@ -2,9 +2,16 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { AUDIO_UPLOAD, IMAGE_UPLOAD, VIDEO_UPLOAD } from '../config'
+import { describeError } from '../api'
 import { useAuthStore } from '../stores/auth'
 import { useChatStore } from '../stores/chat'
 import type { MessageItem, SessionSummary } from '../types'
+import EmojiPanel from '../components/EmojiPanel.vue'
+import CreateGroupDialog from '../components/CreateGroupDialog.vue'
+import GroupInfoDialog from '../components/GroupInfoDialog.vue'
+// 图标取自 koboyo.com/icons（SVG，不引入图标库依赖）
+import smileIcon from '../assets/icons/smile.svg'
+import searchIcon from '../assets/icons/magnifying-glass.svg'
 
 const auth = useAuthStore()
 const chat = useChatStore()
@@ -21,7 +28,14 @@ const MEDIA_RULES: Record<MediaKind, { extensions: string[]; maxMB: number; labe
 const newPeerId = ref('')
 const draft = ref('')
 const sendFailed = ref(false)
+// 查询用户并发起新会话的中间态与错误提示
+const userSearching = ref(false)
+const newChatError = ref('')
 const messageList = ref<HTMLElement | null>(null)
+const draftInput = ref<HTMLTextAreaElement | null>(null)
+// emoji 面板开关与容器（点击容器外部或按 Esc 关闭）
+const emojiOpen = ref(false)
+const emojiWrap = ref<HTMLElement | null>(null)
 const imageInput = ref<HTMLInputElement | null>(null)
 const audioInput = ref<HTMLInputElement | null>(null)
 const videoInput = ref<HTMLInputElement | null>(null)
@@ -29,15 +43,31 @@ const videoInput = ref<HTMLInputElement | null>(null)
 const uploadError = ref('')
 // 原图查看浮层当前显示的图片地址
 const lightboxUrl = ref<string | null>(null)
+// 复制 userid 的结果提示（2 秒后自动消失）
+const copyNotice = ref('')
+const copyNoticeFailed = ref(false)
+let copyNoticeTimer: number | undefined
+// 建群与群信息弹窗
+const createGroupOpen = ref(false)
+const groupInfoOpen = ref(false)
 
 const currentMessages = computed(() =>
-  chat.currentPeerId ? chat.conversations[chat.currentPeerId] ?? [] : []
+  chat.currentRecipientId ? chat.conversations[chat.currentRecipientId] ?? [] : []
 )
 const peerTitle = computed(() =>
-  chat.currentPeerId ? chat.peerNames[chat.currentPeerId] ?? chat.currentPeerId : ''
+  chat.currentRecipientId
+    ? chat.recipientNames[chat.currentRecipientId] ?? chat.currentRecipientId
+    : ''
 )
 const hasMore = computed(() =>
-  chat.currentPeerId ? !!chat.hasMoreHistory[chat.currentPeerId] : false
+  chat.currentRecipientId ? !!chat.hasMoreHistory[chat.currentRecipientId] : false
+)
+// 当前会话是不是群聊：决定消息发往哪里、气泡是否显示发送者昵称
+const currentIsGroup = computed(() =>
+  chat.currentRecipientId ? chat.isGroup(chat.currentRecipientId) : false
+)
+const currentMemberCount = computed(
+  () => chat.sessions.find((s) => s.peer.userid === chat.currentRecipientId)?.memberCount ?? 0
 )
 
 function sessionName(s: SessionSummary): string {
@@ -67,6 +97,11 @@ function isMedia(msg: MessageItem): boolean {
   return msg.msgType === 'image' || msg.msgType === 'audio' || msg.msgType === 'video'
 }
 
+// 群聊里别人发的消息标出是谁说的；单聊只有两个人、自己的消息不必重复署名
+function showSenderName(msg: MessageItem): boolean {
+  return currentIsGroup.value && !msg.fromSelf && !!msg.senderNickname
+}
+
 function formatTime(ts: number): string {
   const d = new Date(ts)
   const pad = (n: number) => String(n).padStart(2, '0')
@@ -89,15 +124,64 @@ function sessionTime(ts: number): string {
 }
 
 function openSession(s: SessionSummary) {
-  chat.openConversation(s.peer.userid, sessionName(s))
+  chat.openConversation(s.peer.userid, s.peer, s.kind)
 }
 
-function startConversation() {
-  const peerId = newPeerId.value.trim()
-  if (!peerId) return
-  chat.openConversation(peerId)
-  newPeerId.value = ''
-  sendFailed.value = false
+// 发起新会话：按输入的账号或用户 ID 查询用户，查到后建立会话条目并打开
+// （查不到、查到自己、请求失败都给出明确提示）
+async function startConversation() {
+  const keyword = newPeerId.value.trim()
+  if (!keyword || userSearching.value) return
+  userSearching.value = true
+  newChatError.value = ''
+  try {
+    const matched = await chat.searchUser(keyword)
+    const target = matched[0]
+    if (!target) {
+      newChatError.value = '未找到该用户，请检查账号或用户 ID 是否正确'
+      return
+    }
+    if (target.id === auth.user?.id) {
+      newChatError.value = '这是你自己，请输入对方的账号或用户 ID'
+      return
+    }
+    chat.openUserConversation(target)
+    newPeerId.value = ''
+    sendFailed.value = false
+  } catch (e) {
+    newChatError.value = describeError(e, '查询用户失败，请稍后重试')
+  } finally {
+    userSearching.value = false
+  }
+}
+
+// 把 emoji 插入到输入框的光标处（emoji 即普通文本，随文本消息一起发送）
+function insertEmoji(emoji: string) {
+  const el = draftInput.value
+  if (!el) {
+    draft.value += emoji
+    return
+  }
+  const start = el.selectionStart ?? draft.value.length
+  const end = el.selectionEnd ?? start
+  draft.value = draft.value.slice(0, start) + emoji + draft.value.slice(end)
+  void nextTick(() => {
+    el.focus()
+    const caret = start + emoji.length
+    el.setSelectionRange(caret, caret)
+  })
+}
+
+// 点击面板与按钮之外的地方、或按 Esc 时关闭面板
+function onGlobalPointerDown(e: MouseEvent) {
+  if (!emojiOpen.value) return
+  const target = e.target as Node | null
+  if (target && emojiWrap.value?.contains(target)) return
+  emojiOpen.value = false
+}
+
+function onGlobalKeydown(e: KeyboardEvent) {
+  if (emojiOpen.value && e.key === 'Escape') emojiOpen.value = false
 }
 
 function handleSend() {
@@ -154,11 +238,11 @@ async function scrollToBottom() {
 // 分页加载更早的历史：保持滚动位置不跳动
 async function loadOlder() {
   const el = messageList.value
-  const peerId = chat.currentPeerId
-  if (!el || !peerId) return
+  const recipientId = chat.currentRecipientId
+  if (!el || !recipientId) return
   const prevHeight = el.scrollHeight
   const prevTop = el.scrollTop
-  await chat.loadOlder(peerId)
+  await chat.loadOlder(recipientId)
   await nextTick()
   el.scrollTop = el.scrollHeight - prevHeight + prevTop
 }
@@ -171,19 +255,57 @@ watch(
   }
 )
 watch(
-  () => chat.currentPeerId,
+  () => chat.currentRecipientId,
   () => {
     scrollToBottom()
   }
 )
 
+function showCopyNotice(text: string, failed: boolean) {
+  copyNotice.value = text
+  copyNoticeFailed.value = failed
+  window.clearTimeout(copyNoticeTimer)
+  copyNoticeTimer = window.setTimeout(() => {
+    copyNotice.value = ''
+  }, 2000)
+}
+
+// 写入剪贴板：优先 Clipboard API；它在非安全上下文（http 且非 localhost，如用局域网 IP 访问）
+// 下不存在或被拒，此时降级到临时 textarea + execCommand。两者都失败返回 false
+function writeClipboard(text: string): boolean | Promise<boolean> {
+  if (navigator.clipboard?.writeText) {
+    return navigator.clipboard
+      .writeText(text)
+      .then(() => true)
+      .catch(() => legacyCopy(text))
+  }
+  return legacyCopy(text)
+}
+
+function legacyCopy(text: string): boolean {
+  const ta = document.createElement('textarea')
+  ta.value = text
+  ta.setAttribute('readonly', '')
+  ta.style.position = 'fixed'
+  ta.style.top = '0'
+  ta.style.opacity = '0'
+  document.body.appendChild(ta)
+  ta.select()
+  ta.setSelectionRange(0, text.length)
+  try {
+    return document.execCommand('copy')
+  } catch {
+    return false
+  } finally {
+    document.body.removeChild(ta)
+  }
+}
+
 async function copyMyId() {
   if (!auth.user) return
-  try {
-    await navigator.clipboard.writeText(auth.user.id)
-  } catch {
-    // 剪贴板不可用时忽略
-  }
+  const ok = await writeClipboard(auth.user.id)
+  // 复制失败时提示手动选中：ID 由可选中的 span 承载（button 内文本无法选中）
+  showCopyNotice(ok ? '已复制 userid' : '复制失败，请手动选中 ID 复制', !ok)
 }
 
 function handleLogout() {
@@ -193,12 +315,23 @@ function handleLogout() {
   router.replace({ name: 'login' })
 }
 
+// 会话列表只含有过消息的会话，群列表要随后补上还没发言的群，顺序不能颠倒
+async function refreshSessions() {
+  await chat.loadSessions()
+  await chat.loadGroups()
+}
+
 onMounted(() => {
   chat.connect()
-  void chat.loadSessions()
+  void refreshSessions()
+  document.addEventListener('mousedown', onGlobalPointerDown)
+  document.addEventListener('keydown', onGlobalKeydown)
 })
 onUnmounted(() => {
   chat.disconnect()
+  window.clearTimeout(copyNoticeTimer)
+  document.removeEventListener('mousedown', onGlobalPointerDown)
+  document.removeEventListener('keydown', onGlobalKeydown)
 })
 </script>
 
@@ -211,9 +344,13 @@ onUnmounted(() => {
       </span>
       <div class="me">
         <span class="nickname">{{ auth.user?.nickname }}</span>
-        <button class="copy-id" title="复制我的 userid 发给对方" @click="copyMyId">
-          我的 ID：{{ auth.user?.id }}
-        </button>
+        <div class="my-id-row">
+          <span class="my-id" title="选中可手动复制">我的 ID：{{ auth.user?.id }}</span>
+          <button class="copy-id" title="复制我的 userid 发给对方" @click="copyMyId">复制</button>
+        </div>
+        <span v-if="copyNotice" :class="['copy-notice', { failed: copyNoticeFailed }]">
+          {{ copyNotice }}
+        </span>
       </div>
       <button class="logout" @click="handleLogout">退出</button>
     </header>
@@ -223,28 +360,48 @@ onUnmounted(() => {
         <div class="new-chat">
           <input
             v-model="newPeerId"
-            placeholder="输入对方 userid 发起会话"
+            placeholder="输入对方账号或 userid 查找"
             @keyup.enter="startConversation"
           />
-          <button @click="startConversation">开始</button>
+          <button
+            class="search-user"
+            title="查找用户并发起会话"
+            aria-label="查找用户并发起会话"
+            :disabled="userSearching"
+            @click="startConversation"
+          >
+            <img :src="searchIcon" alt="" />
+          </button>
+          <button class="create-group" title="选择若干用户建群" @click="createGroupOpen = true">
+            建群
+          </button>
         </div>
+        <p v-if="newChatError" class="new-chat-error">{{ newChatError }}</p>
+        <p v-if="chat.groupsError" class="new-chat-error">{{ chat.groupsError }}</p>
 
         <p v-if="chat.sessionsLoading" class="sidebar-tip">会话加载中…</p>
         <p v-else-if="chat.sessionsError" class="sidebar-error">{{ chat.sessionsError }}</p>
         <p v-else-if="chat.sessions.length === 0" class="sidebar-tip">
-          还没有会话，输入对方 userid 开始聊天
+          还没有会话，输入对方账号或 userid 开始聊天
         </p>
         <ul v-else class="session-list">
           <li
             v-for="s in chat.sessions"
             :key="s.peer.userid"
-            :class="{ active: s.peer.userid === chat.currentPeerId }"
+            :class="{ active: s.peer.userid === chat.currentRecipientId }"
             @click="openSession(s)"
           >
-            <div class="avatar">{{ sessionName(s).slice(0, 1).toUpperCase() }}</div>
+            <div :class="['avatar', { 'group-avatar': s.kind === 'group' }]">
+              {{ sessionName(s).slice(0, 1).toUpperCase() }}
+            </div>
             <div class="session-info">
               <div class="session-top">
-                <span class="name">{{ sessionName(s) }}</span>
+                <span class="name">
+                  {{ sessionName(s) }}
+                  <span v-if="s.kind === 'group'" class="member-count">
+                    {{ s.memberCount ?? 0 }} 人
+                  </span>
+                </span>
                 <span class="time">{{ sessionTime(s.lastMessage.createdAt) }}</span>
               </div>
               <div class="preview">{{ sessionPreview(s) }}</div>
@@ -253,8 +410,17 @@ onUnmounted(() => {
         </ul>
       </aside>
 
-      <main v-if="chat.currentPeerId" class="chat-main">
-        <div class="chat-header">与 {{ peerTitle }} 的会话</div>
+      <main v-if="chat.currentRecipientId" class="chat-main">
+        <div class="chat-header">
+          <span v-if="currentIsGroup" class="header-title">
+            {{ peerTitle }}
+            <span class="member-count">{{ currentMemberCount }} 人</span>
+          </span>
+          <span v-else class="header-title">与 {{ peerTitle }} 的会话</span>
+          <button v-if="currentIsGroup" class="group-info" @click="groupInfoOpen = true">
+            群信息
+          </button>
+        </div>
 
         <div ref="messageList" class="message-list">
           <div class="load-more">
@@ -275,51 +441,59 @@ onUnmounted(() => {
             :key="msg.seq"
             :class="['message-row', msg.fromSelf ? 'self' : 'peer']"
           >
-            <div :class="['bubble', isMedia(msg) ? 'media-bubble' : '']">
-              <template v-if="msg.msgType === 'image'">
-                <img
-                  v-if="mediaSrc(msg)"
-                  :class="['image-thumb', { uploading: msg.uploading, failed: !!msg.error }]"
-                  :src="mediaSrc(msg)!"
-                  :alt="msg.error ? '图片发送失败' : '图片消息'"
-                  @click="openLightbox(msg)"
-                />
-                <span v-else class="media-broken">图片不可用</span>
-                <span v-if="msg.uploading" class="media-hint">图片上传中…</span>
-                <span v-else-if="msg.error" class="media-hint failed">发送失败：{{ msg.error }}</span>
-              </template>
-              <template v-else-if="msg.msgType === 'audio'">
-                <audio
-                  v-if="mediaSrc(msg)"
-                  :class="['audio-player', { uploading: msg.uploading, failed: !!msg.error }]"
-                  controls
-                  preload="metadata"
-                  :src="mediaSrc(msg)!"
-                ></audio>
-                <span v-else class="media-broken">音频不可用</span>
-                <span v-if="msg.uploading" class="media-hint">音频上传中…</span>
-                <span v-else-if="msg.error" class="media-hint failed">发送失败：{{ msg.error }}</span>
-              </template>
-              <template v-else-if="msg.msgType === 'video'">
-                <video
-                  v-if="mediaSrc(msg)"
-                  :class="['video-player', { uploading: msg.uploading, failed: !!msg.error }]"
-                  controls
-                  preload="metadata"
-                  :src="mediaSrc(msg)!"
-                ></video>
-                <span v-else class="media-broken">视频不可用</span>
-                <span v-if="msg.uploading" class="media-hint">视频上传中…</span>
-                <span v-else-if="msg.error" class="media-hint failed">发送失败：{{ msg.error }}</span>
-              </template>
-              <span v-else class="content">{{ msg.content }}</span>
-              <span class="meta">
-                {{ formatTime(msg.timestamp) }}
-                <span v-if="msg.fromSelf && !msg.acked && !msg.uploading && !msg.error" class="pending">
-                  发送中
+            <div class="message-col">
+              <!-- 群聊里别人发的消息要标出是谁说的（单聊只有两个人，不需要） -->
+              <span v-if="showSenderName(msg)" class="sender-name">{{ msg.senderNickname }}</span>
+              <div :class="['bubble', isMedia(msg) ? 'media-bubble' : '']">
+                <template v-if="msg.msgType === 'image'">
+                  <img
+                    v-if="mediaSrc(msg)"
+                    :class="['image-thumb', { uploading: msg.uploading, failed: !!msg.error }]"
+                    :src="mediaSrc(msg)!"
+                    :alt="msg.error ? '图片发送失败' : '图片消息'"
+                    @click="openLightbox(msg)"
+                  />
+                  <span v-else class="media-broken">图片不可用</span>
+                  <span v-if="msg.uploading" class="media-hint">图片上传中…</span>
+                  <span v-else-if="msg.error" class="media-hint failed">发送失败：{{ msg.error }}</span>
+                </template>
+                <template v-else-if="msg.msgType === 'audio'">
+                  <audio
+                    v-if="mediaSrc(msg)"
+                    :class="['audio-player', { uploading: msg.uploading, failed: !!msg.error }]"
+                    controls
+                    preload="metadata"
+                    :src="mediaSrc(msg)!"
+                  ></audio>
+                  <span v-else class="media-broken">音频不可用</span>
+                  <span v-if="msg.uploading" class="media-hint">音频上传中…</span>
+                  <span v-else-if="msg.error" class="media-hint failed">发送失败：{{ msg.error }}</span>
+                </template>
+                <template v-else-if="msg.msgType === 'video'">
+                  <video
+                    v-if="mediaSrc(msg)"
+                    :class="['video-player', { uploading: msg.uploading, failed: !!msg.error }]"
+                    controls
+                    preload="metadata"
+                    :src="mediaSrc(msg)!"
+                  ></video>
+                  <span v-else class="media-broken">视频不可用</span>
+                  <span v-if="msg.uploading" class="media-hint">视频上传中…</span>
+                  <span v-else-if="msg.error" class="media-hint failed">发送失败：{{ msg.error }}</span>
+                </template>
+                <span v-else class="content">{{ msg.content }}</span>
+                <span class="meta">
+                  {{ formatTime(msg.timestamp) }}
+                  <span v-if="msg.fromSelf && !msg.acked && !msg.uploading && !msg.error" class="pending">
+                    发送中
+                  </span>
+                  <span
+                    v-if="msg.fromSelf && msg.error"
+                    class="pending failed"
+                    :title="msg.error"
+                  >发送失败</span>
                 </span>
-                <span v-if="msg.fromSelf && msg.error" class="pending failed">发送失败</span>
-              </span>
+              </div>
             </div>
           </div>
         </div>
@@ -352,8 +526,20 @@ onUnmounted(() => {
             <button class="attach" title="发送图片" @click="imageInput?.click()">图片</button>
             <button class="attach" title="发送音频" @click="audioInput?.click()">音频</button>
             <button class="attach" title="发送视频" @click="videoInput?.click()">视频</button>
+            <!-- emoji 面板：点击插入 Unicode emoji，随文本消息一起发送 -->
+            <div ref="emojiWrap" class="emoji-wrap">
+              <button
+                :class="['attach', 'emoji-toggle', { active: emojiOpen }]"
+                title="选择表情"
+                @click="emojiOpen = !emojiOpen"
+              >
+                <img class="icon" :src="smileIcon" alt="" />表情
+              </button>
+              <EmojiPanel v-if="emojiOpen" class="emoji-popover" @select="insertEmoji" />
+            </div>
           </div>
           <textarea
+            ref="draftInput"
             v-model="draft"
             rows="2"
             placeholder="输入消息，Enter 发送"
@@ -364,9 +550,20 @@ onUnmounted(() => {
       </main>
 
       <main v-else class="chat-main empty-main">
-        <p>从左侧选择会话，或输入对方 userid 开始聊天</p>
+        <p>从左侧选择会话，或输入对方账号 / userid 开始聊天</p>
       </main>
     </div>
+
+    <!-- 建群：选成员 → 建群 → 打开该群会话 -->
+    <CreateGroupDialog v-if="createGroupOpen" @created="createGroupOpen = false" @close="createGroupOpen = false" />
+
+    <!-- 群信息：群名、成员列表、退群 -->
+    <GroupInfoDialog
+      v-if="groupInfoOpen && chat.currentRecipientId"
+      :group-id="chat.currentRecipientId"
+      @left="groupInfoOpen = false"
+      @close="groupInfoOpen = false"
+    />
 
     <!-- 原图查看浮层：点击任意处关闭 -->
     <div v-if="lightboxUrl" class="lightbox" @click="lightboxUrl = null">
@@ -421,15 +618,38 @@ onUnmounted(() => {
   font-weight: 600;
 }
 
-.copy-id {
-  border: none;
-  background: none;
-  color: #86909c;
+.my-id-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ID 用普通 span 承载：button 内文本在浏览器中不可选中，无法手动复制 */
+.my-id {
   font-size: 12px;
-  max-width: 320px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  color: #86909c;
+  user-select: text;
+  cursor: text;
+  word-break: break-all;
+}
+
+.copy-id {
+  flex-shrink: 0;
+  border: 1px solid #d9d9d9;
+  background: #fff;
+  color: #165dff;
+  border-radius: 4px;
+  padding: 1px 8px;
+  font-size: 12px;
+}
+
+.copy-notice {
+  font-size: 11px;
+  color: #389e0d;
+}
+
+.copy-notice.failed {
+  color: #d4380d;
 }
 
 .logout {
@@ -480,6 +700,38 @@ onUnmounted(() => {
   padding: 8px 12px;
   font-size: 12px;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.new-chat button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.new-chat .search-user {
+  width: 34px;
+  padding: 0;
+}
+
+.new-chat .search-user img {
+  width: 16px;
+  height: 16px;
+}
+
+/* 建群入口：与查找用户并排，字数固定避免挤占输入框 */
+.new-chat .create-group {
+  flex-shrink: 0;
+  padding: 8px 10px;
+}
+
+/* 查询用户失败的明确提示（查无此人 / 查到自己 / 请求失败） */
+.new-chat-error {
+  padding: 6px 12px 0;
+  color: #d4380d;
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 .sidebar-tip,
@@ -529,6 +781,19 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* 群会话头像换色：会话列表里一眼分清单聊与群聊 */
+.group-avatar {
+  background: #722ed1;
+}
+
+/* 群成员数：跟在群名后面 */
+.member-count {
+  margin-left: 6px;
+  font-weight: 400;
+  font-size: 11px;
+  color: #86909c;
 }
 
 .session-info {
@@ -583,9 +848,31 @@ onUnmounted(() => {
 }
 
 .chat-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   padding: 10px 16px;
   font-weight: 600;
   border-bottom: 1px solid #f2f3f5;
+}
+
+.header-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 群信息入口：查看群名、成员列表并退群 */
+.group-info {
+  margin-left: auto;
+  flex-shrink: 0;
+  border: 1px solid #d9d9d9;
+  background: #fff;
+  color: #165dff;
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-size: 12px;
 }
 
 .message-list {
@@ -635,8 +922,27 @@ onUnmounted(() => {
   justify-content: flex-end;
 }
 
-.bubble {
+/* 气泡与发送者昵称同属一列；宽度上限从气泡移到这一列，气泡仍按内容收缩 */
+.message-col {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   max-width: 65%;
+  align-items: flex-start;
+}
+
+.self .message-col {
+  align-items: flex-end;
+}
+
+.sender-name {
+  font-size: 11px;
+  color: #86909c;
+  padding: 0 2px;
+}
+
+.bubble {
+  max-width: 100%;
   padding: 8px 12px;
   border-radius: 10px;
   display: flex;
@@ -803,6 +1109,34 @@ onUnmounted(() => {
 
 .attach:hover {
   border-color: #165dff;
+}
+
+/* emoji 面板：按钮与浮层同属一个容器，点击容器内不关闭面板 */
+.emoji-wrap {
+  position: relative;
+}
+
+.emoji-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.emoji-toggle.active {
+  border-color: #165dff;
+  background: #e8f3ff;
+}
+
+.emoji-toggle .icon {
+  width: 14px;
+  height: 14px;
+}
+
+.emoji-popover {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  z-index: 20;
 }
 
 .input-area .error {

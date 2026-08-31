@@ -17,6 +17,12 @@ enum MessageType: String, Codable {
     case system = "system" // 系统
 }
 
+// 收件主体类型（message.to_type）：消息投递的目标是用户还是群
+enum RecipientType: String, Codable {
+    case user // 单聊：投给某个用户
+    case group // 群聊：投给某个群
+}
+
 /*****************   Mine   *********************************/
 final class Mine: Fields {
     // 用户头像
@@ -88,6 +94,10 @@ final class To: Fields {
 }
 /*****************   To   *********************************/
 
+// Fluent 的 @Group 是 `Fields.Group` 的类型别名，简写会被 Models/Group.swift 里的群模型遮蔽
+// （同名但非属性包装器，编译期报 "unknown attribute"）。本文件内改用此别名指代它。
+typealias GroupField<Value: Fields> = GroupProperty<ChatMessage, Value>
+
 // 模型默认遵循 Codable 协议。这意味着你可以通过添加 Content 协议将你的模型与 Vapor 的 content API 一起使用
 final class ChatMessage: Model, Content {
     // 表或集合名。
@@ -109,23 +119,36 @@ final class ChatMessage: Model, Content {
 //    var type: MessageType
     
     // 发送者
-    @Group(key: "mine")
+    @GroupField(key: "mine")
     var mine: Mine
 
     // 接受者
-    @Group(key: "to")
+    @GroupField(key: "to")
     var to: To
+
+    // 收件主体：to_type 为 user 时 to_id 是用户 id，为 group 时是群 id。
+    // 这是「消息发给谁」的权威来源；to_userid 是 iOS 端协议沿用的旧字段，只在单聊下有值。
+    // 存字符串而非数据库枚举——SQLite 下枚举迁移比字符串麻烦得多。
+    @Field(key: "to_type")
+    var toType: String
+
+    @Field(key: "to_id")
+    var toId: String
     
     // 创建一个空实现用来映射。
     init() { }
 
     // 并设置所有属性。
     // 父标识符使用 $galaxy
-    init(id: UUID? = nil, type: String, mine: Mine, to: To) {
+    // toId 缺省取 to.userid：群聊落地前，所有调用方发的都是单聊消息
+    init(id: UUID? = nil, type: String, mine: Mine, to: To,
+         toType: String = RecipientType.user.rawValue, toId: String? = nil) {
         self.id = id
         self.type = type
         self.mine = mine
         self.to = to
+        self.toType = toType
+        self.toId = toId ?? to.userId
 //        self.$galaxy.id = galaxyID
     }
 }
@@ -142,6 +165,25 @@ struct AddMessageMsgType: AsyncMigration {
         try await database.schema("message")
             .deleteField("mine_msgType")
             .update()
+    }
+}
+
+// message 表新增收件主体字段（to_type / to_id），旧数据按单聊回填
+struct AddMessageRecipient: AsyncMigration {
+    func prepare(on database: Database) async throws {
+        // SQLite 的 ALTER TABLE 一次只能加一列，两次 update 而不是合并成一条
+        try await database.schema("message").field("to_type", .string).update()
+        try await database.schema("message").field("to_id", .string).update()
+
+        // 既有消息全是单聊，逐条 ORM 更新代价太高，直接 SQL 回填
+        guard let sql = database as? SQLDatabase else { return }
+        try await sql.raw("UPDATE message SET to_type = 'user', to_id = to_userid").run()
+    }
+
+    func revert(on database: Database) async throws {
+        // 同上：DROP COLUMN 一次也只能删一列
+        try await database.schema("message").deleteField("to_type").update()
+        try await database.schema("message").deleteField("to_id").update()
     }
 }
 

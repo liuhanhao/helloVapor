@@ -31,13 +31,35 @@ async function me(token) {
   return { status: res.status, body: await res.json().catch(() => ({})) }
 }
 
-function wsConnect(userid, username) {
+// 连接凭证为 token（issue 06）：身份由服务端凭 token 解析，不再由客户端自报 userid
+function wsConnect(token) {
   return new Promise((resolve, reject) => {
-    const ws = new WebSocket(`${WS_BASE}/chat/webSocket?userid=${encodeURIComponent(userid)}&username=${encodeURIComponent(username)}`)
+    const ws = new WebSocket(`${WS_BASE}/chat/webSocket?token=${encodeURIComponent(token)}`)
     const inbox = []
     ws.onmessage = (e) => inbox.push(JSON.parse(String(e.data)))
     ws.onopen = () => resolve({ ws, inbox })
     ws.onerror = (e) => reject(new Error('ws error ' + (e?.message ?? '')))
+  })
+}
+
+// 期望被服务端拒绝的连接：resolve 出 close code（1008 = 凭证无效），超时为 null
+function wsConnectExpectClose(url, timeoutMs = 3000) {
+  return new Promise((resolve) => {
+    let settled = false
+    const ws = new WebSocket(url)
+    const finish = (code) => {
+      if (settled) return
+      settled = true
+      clearTimeout(timer)
+      resolve(code)
+    }
+    const timer = setTimeout(() => {
+      try { ws.close() } catch {}
+      finish(null)
+    }, timeoutMs)
+    // 握手成功后再被服务端关闭是正常路径：只等 close 事件，不等 onopen
+    ws.onclose = (e) => finish(e.code)
+    ws.onerror = () => {}
   })
 }
 
@@ -79,11 +101,17 @@ async function main() {
   const mea = await me(la.body.value)
   check('/chat/me 返回用户信息且无密码散列', mea.status === 200 && mea.body.account === aliceAccount && !mea.body.passwordHash, JSON.stringify(mea.body))
 
-  // 5. 建立两个 WebSocket 连接
-  const alice = await wsConnect(mea.body.id, aliceAccount)
+  // 5. WebSocket 鉴权（issue 06）：无 token / 无效 token 一律拒绝
+  const codeNoToken = await wsConnectExpectClose(`${WS_BASE}/chat/webSocket`)
+  check('无 token 的 WebSocket 连接被拒绝（1008）', codeNoToken === 1008, `code=${codeNoToken}`)
+  const codeBadToken = await wsConnectExpectClose(`${WS_BASE}/chat/webSocket?token=not-a-real-token`)
+  check('无效 token 的 WebSocket 连接被拒绝（1008）', codeBadToken === 1008, `code=${codeBadToken}`)
+
+  // 5b. 建立两个带有效 token 的 WebSocket 连接
+  const alice = await wsConnect(la.body.value)
   const meb = await me(lb.body.value)
-  const bob = await wsConnect(meb.body.id, bobAccount)
-  check('两个 WebSocket 连接建立', true)
+  const bob = await wsConnect(lb.body.value)
+  check('携带有效 token 的两个 WebSocket 连接建立', true)
 
   // 6. Alice 发送新格式文本（带 msgType）→ Bob 实时收到，Alice 收到 ack
   alice.ws.send(JSON.stringify({
@@ -420,8 +448,440 @@ async function main() {
   const mp4Res2 = await fetch(`${BASE}${mp4Url}`)
   check('历史音频/视频 URL 可重复访问', wavRes2.status === 200 && mp4Res2.status === 200, `wav=${wavRes2.status} mp4=${mp4Res2.status}`)
 
+  // 14. 用户查询（issue 05）：按账号或用户 ID 查询，返回公开身份信息，不含敏感字段
+  const noAuthUsers = await fetch(`${BASE}/chat/users?q=${encodeURIComponent(bobAccount)}`)
+  check('未携带 token 查询用户返回 401', noAuthUsers.status === 401, `status=${noAuthUsers.status}`)
+
+  const noQuery = await fetch(`${BASE}/chat/users`, { headers: { Authorization: `Bearer ${la.body.value}` } })
+  check('缺少查询关键字 q 返回 400', noQuery.status === 400, `status=${noQuery.status}`)
+
+  const byAccountRes = await fetch(`${BASE}/chat/users?q=${encodeURIComponent(bobAccount)}`, { headers: { Authorization: `Bearer ${la.body.value}` } })
+  const byAccount = await byAccountRes.json()
+  check(
+    '按账号查询命中并返回公开身份（id/昵称/账号/头像）',
+    byAccountRes.status === 200 && byAccount[0]?.id === meb.body.id && byAccount[0]?.account === bobAccount && byAccount[0]?.nickname === 'Bob' && byAccount[0]?.avatar === 'default',
+    JSON.stringify(byAccount)
+  )
+
+  const byIdRes = await fetch(`${BASE}/chat/users?q=${encodeURIComponent(meb.body.id)}`, { headers: { Authorization: `Bearer ${la.body.value}` } })
+  const byId = await byIdRes.json()
+  check('按用户 ID 查询命中同一用户', byIdRes.status === 200 && byId[0]?.id === meb.body.id, JSON.stringify(byId))
+
+  const notFoundUser = await (await fetch(`${BASE}/chat/users?q=nobody-${stamp}@test.com`, { headers: { Authorization: `Bearer ${la.body.value}` } })).json()
+  check('查无此人返回空数组（前端据此给出明确提示）', Array.isArray(notFoundUser) && notFoundUser.length === 0, JSON.stringify(notFoundUser))
+
+  const userJson = JSON.stringify(byAccount)
+  check('用户查询接口不返回密码等敏感字段', !/password/i.test(userJson) && !/hash/i.test(userJson), userJson.slice(0, 160))
+
+  // 15. emoji 文本消息（issue 05）：emoji 即普通文本，不引入协议扩展
+  const emojiText = '你好，Bob！🎉😀 表情测试 🚀👍'
+  alice.ws.send(JSON.stringify({
+    type: 'chatMessage',
+    data: {
+      mine: { avatar: 'default', content: emojiText, mine: true, userid: mea.body.id, username: aliceAccount, nickname: 'Alice', msgType: 'text' },
+      to: { avatar: 'default', userid: meb.body.id, username: bobAccount, nickname: 'Bob' }
+    }
+  }))
+  const bobEmojiOk = await waitUntil(() => bob.inbox.some((m) => m.type === 'chatMessage' && m.data?.mine?.content === emojiText))
+  const bobEmojiMsg = bob.inbox.find((m) => m.type === 'chatMessage' && m.data?.mine?.content === emojiText)
+  check('Bob 实时收到含 emoji 的文本消息且内容逐字符一致', !!bobEmojiOk, JSON.stringify(bobEmojiMsg?.data?.mine?.content ?? null))
+  check('含 emoji 消息仍为 text 类型（无协议扩展）', bobEmojiMsg?.data?.mine?.msgType === 'text', String(bobEmojiMsg?.data?.mine?.msgType))
+
+  await sleep(300)
+  const sessEmoji = await (await fetch(`${BASE}/chat/sessions`, { headers: { Authorization: `Bearer ${la.body.value}` } })).json()
+  const aliceBobEmoji = sessEmoji.find((s) => s.peer.userid === meb.body.id)
+  check(
+    '含 emoji 的文本消息入库且会话列表预览内容一致',
+    aliceBobEmoji?.lastMessage?.content === emojiText && aliceBobEmoji?.lastMessage?.msgType === 'text',
+    JSON.stringify(aliceBobEmoji?.lastMessage ?? null)
+  )
+
+  const histEmoji = await (await fetch(`${BASE}/chat/history?peer=${encodeURIComponent(meb.body.id)}`, { headers: { Authorization: `Bearer ${la.body.value}` } })).json()
+  const histEmojiMsg = histEmoji.messages.find((m) => m.content === emojiText)
+  check('历史接口原样返回含 emoji 的文本消息', !!histEmojiMsg && histEmojiMsg.msgType === 'text', JSON.stringify(histEmojiMsg ?? null))
+
+  // 16. 发起新会话（issue 05）：Alice 查询此前毫无聊天记录的 Carol → 发首条消息 → 双向可收发
+  const carolAccount = `carol${stamp}@test.com`
+  await register('Carol', carolAccount)
+  const lc = await login(carolAccount, 'pass123')
+  const mec = await me(lc.body.value)
+  const carol = await wsConnect(lc.body.value)
+
+  const carolSessionsBefore = await (await fetch(`${BASE}/chat/sessions`, { headers: { Authorization: `Bearer ${lc.body.value}` } })).json()
+  check('新用户初始会话列表为空', Array.isArray(carolSessionsBefore) && carolSessionsBefore.length === 0, JSON.stringify(carolSessionsBefore.map((s) => s.peer.userid)))
+
+  const foundCarol = await (await fetch(`${BASE}/chat/users?q=${encodeURIComponent(carolAccount)}`, { headers: { Authorization: `Bearer ${la.body.value}` } })).json()
+  check('Alice 按账号查到 Carol（此前无任何聊天记录）', foundCarol[0]?.id === mec.body.id && foundCarol[0]?.nickname === 'Carol', JSON.stringify(foundCarol))
+
+  const firstText = '你好，Carol！这是我们的第一条消息 🎉'
+  alice.ws.send(JSON.stringify({
+    type: 'chatMessage',
+    data: {
+      mine: { avatar: 'default', content: firstText, mine: true, userid: mea.body.id, username: aliceAccount, nickname: 'Alice', msgType: 'text' },
+      to: { avatar: 'default', userid: mec.body.id, username: carolAccount, nickname: 'Carol' }
+    }
+  }))
+  const carolFirst = await waitUntil(() => carol.inbox.some((m) => m.type === 'chatMessage' && m.data?.mine?.content === firstText))
+  check('新会话首条消息实时送达对端', !!carolFirst, JSON.stringify(carol.inbox.map((m) => m.data?.mine?.content ?? null)))
+
+  await sleep(300)
+  const carolSessions = await (await fetch(`${BASE}/chat/sessions`, { headers: { Authorization: `Bearer ${lc.body.value}` } })).json()
+  const carolAlice = carolSessions.find((s) => s.peer.userid === mea.body.id)
+  check(
+    'Carol 会话列表出现与 Alice 的新条目（身份取自 users 表）',
+    !!carolAlice && carolAlice.peer.nickname === 'Alice' && carolAlice.peer.username === aliceAccount && carolAlice.lastMessage.content === firstText && carolAlice.lastMessage.fromSelf === false,
+    JSON.stringify(carolAlice ?? null)
+  )
+
+  const carolHist = await (await fetch(`${BASE}/chat/history?peer=${encodeURIComponent(mea.body.id)}`, { headers: { Authorization: `Bearer ${lc.body.value}` } })).json()
+  check('Carol 侧历史消息包含该首条消息', carolHist.messages.length === 1 && carolHist.messages[0].content === firstText && carolHist.messages[0].fromSelf === false, JSON.stringify(carolHist))
+
+  // Carol 回复，Alice 实时收到（新会话双向可收发）
+  carol.ws.send(JSON.stringify({
+    type: 'chatMessage',
+    data: {
+      mine: { avatar: 'default', content: '收到啦！👋', mine: true, userid: mec.body.id, username: carolAccount, nickname: 'Carol', msgType: 'text' },
+      to: { avatar: 'default', userid: mea.body.id, username: aliceAccount, nickname: 'Alice' }
+    }
+  }))
+  const aliceGotCarol = await waitUntil(() => alice.inbox.some((m) => m.type === 'chatMessage' && m.data?.mine?.userid === mec.body.id))
+  check('新会话可双向收发消息（Alice 实时收到 Carol 的回复）', !!aliceGotCarol, '')
+
+  // 伪造发件人无效（issue 06）：Alice 的连接在 payload 里冒用 Bob 的身份发给 Carol，
+  // 服务端应以连接绑定的身份覆盖，Carol 看到的发件人仍是 Alice
+  alice.ws.send(JSON.stringify({
+    type: 'chatMessage',
+    data: {
+      mine: { avatar: 'default', content: '我冒充 Bob', mine: true, userid: meb.body.id, username: bobAccount, nickname: '假的Bob', msgType: 'text' },
+      to: { avatar: 'default', userid: mec.body.id, username: carolAccount, nickname: 'Carol' }
+    }
+  }))
+  const carolSpoof = await waitUntil(() => carol.inbox.some((m) => m.data?.mine?.content === '我冒充 Bob'))
+  const spoofMsg = carol.inbox.find((m) => m.data?.mine?.content === '我冒充 Bob')
+  check(
+    '伪造发件人无效：接收方看到的仍是连接绑定的身份',
+    !!carolSpoof && spoofMsg?.data?.mine?.userid === mea.body.id && spoofMsg?.data?.mine?.nickname === 'Alice',
+    JSON.stringify(spoofMsg?.data?.mine ?? null)
+  )
+
+  // 17. 建群与成员管理（群聊 02）：建群 / 群列表 / 成员列表 / 拉人 / 退群 / 改群信息
+  // 带 token 的 JSON 接口统一走这里，省去每处重复拼 header
+  async function api(method, path, token, body) {
+    const res = await fetch(`${BASE}${path}`, {
+      method,
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(body === undefined ? {} : { 'Content-Type': 'application/json' })
+      },
+      body: body === undefined ? undefined : JSON.stringify(body)
+    })
+    return { status: res.status, body: await res.json().catch(() => ({})) }
+  }
+
+  // Dave：先当非成员（验证越权被拒），稍后被拉入群；Eve：始终是非成员
+  const daveAccount = `dave${stamp}@test.com`
+  await register('Dave', daveAccount)
+  const ld = await login(daveAccount, 'pass123')
+  const med = await me(ld.body.value)
+  const eveAccount = `eve${stamp}@test.com`
+  await register('Eve', eveAccount)
+  const le = await login(eveAccount, 'pass123')
+  const mee = await me(le.body.value)
+
+  // 17.1 鉴权：未携带 token 一律 401
+  for (const [name, method, path, body] of [
+    ['访问群列表', 'GET', '/chat/groups', undefined],
+    ['建群', 'POST', '/chat/groups', { name: '无 token 建群' }],
+    ['查看群成员', 'GET', `/chat/groups/${crypto.randomUUID()}/members`, undefined]
+  ]) {
+    const res = await api(method, path, null, body)
+    check(`未携带 token ${name}返回 401`, res.status === 401, `status=${res.status}`)
+  }
+
+  // 17.2 建群：创建者自动入群且为 owner
+  const createRes = await api('POST', '/chat/groups', la.body.value, {
+    name: '三人群',
+    memberIds: [meb.body.id, mec.body.id]
+  })
+  check(
+    '建群成功：创建者自动入群且为 owner，成员数 = 3',
+    createRes.status === 200 && createRes.body.name === '三人群' && createRes.body.ownerId === mea.body.id && createRes.body.memberCount === 3 && createRes.body.avatar === 'default',
+    JSON.stringify(createRes.body)
+  )
+  const groupId = createRes.body.id
+  check('建群返回群 id 与创建时间', typeof groupId === 'string' && typeof createRes.body.createdAt === 'number', JSON.stringify(createRes.body))
+
+  // 17.3 成员存在性校验：不存在的用户 id 返回明确错误，不静默丢弃
+  const ghostCreate = await api('POST', '/chat/groups', la.body.value, { name: '含幽灵成员', memberIds: [crypto.randomUUID()] })
+  check('建群传入不存在的用户 id 返回明确错误', ghostCreate.status === 400 && /不存在/.test(ghostCreate.body.reason ?? ''), `status=${ghostCreate.status} ${ghostCreate.body.reason ?? ''}`)
+  const badIdCreate = await api('POST', '/chat/groups', la.body.value, { name: '含非法 id', memberIds: ['not-a-uuid'] })
+  check('建群传入非法用户 id 返回明确错误', badIdCreate.status === 400 && /格式不正确/.test(badIdCreate.body.reason ?? ''), `status=${badIdCreate.status} ${badIdCreate.body.reason ?? ''}`)
+  const emptyNameCreate = await api('POST', '/chat/groups', la.body.value, { name: '   ', memberIds: [] })
+  check('群名称为空被拒', emptyNameCreate.status === 400 && /群名称不能为空/.test(emptyNameCreate.body.reason ?? ''), `status=${emptyNameCreate.status} ${emptyNameCreate.body.reason ?? ''}`)
+
+  // 17.4 成员数上限 200：建群与拉人共用同一处校验
+  const tooManyIds = Array.from({ length: 200 }, () => crypto.randomUUID())
+  const overLimit = await api('POST', '/chat/groups', la.body.value, { name: '超出上限', memberIds: tooManyIds })
+  check('建群成员数超过 200 被拒且错误明确', overLimit.status === 400 && /不能超过 200 人/.test(overLimit.body.reason ?? ''), `status=${overLimit.status} ${overLimit.body.reason ?? ''}`)
+
+  // 17.5 群列表：只返回我加入的群
+  const listA = await api('GET', '/chat/groups', la.body.value)
+  check(
+    '我的群列表包含刚创建的群（含成员数与创建者）',
+    listA.status === 200 && listA.body.some((g) => g.id === groupId && g.memberCount === 3 && g.ownerId === mea.body.id),
+    JSON.stringify(listA.body.map((g) => [g.name, g.memberCount]))
+  )
+  const listB = await api('GET', '/chat/groups', lb.body.value)
+  check('被拉入群的人（Bob）群列表出现该群', listB.status === 200 && listB.body.some((g) => g.id === groupId), JSON.stringify(listB.body.map((g) => g.id)))
+  const listD = await api('GET', '/chat/groups', ld.body.value)
+  check('非成员（Dave）的群列表不含该群', listD.status === 200 && !listD.body.some((g) => g.id === groupId), JSON.stringify(listD.body.map((g) => g.id)))
+
+  // 17.6 成员列表：非成员访问被拒
+  const membersRes = await api('GET', `/chat/groups/${groupId}/members`, la.body.value)
+  check(
+    '成员列表返回全部成员，身份取自 users 表',
+    membersRes.status === 200 && membersRes.body.length === 3 &&
+      membersRes.body.some((m) => m.userid === meb.body.id && m.nickname === 'Bob' && m.username === bobAccount && m.avatar === 'default'),
+    JSON.stringify(membersRes.body.map((m) => m.nickname))
+  )
+  check('成员列表含入群时间', typeof membersRes.body[0]?.joinedAt === 'number', JSON.stringify(membersRes.body[0] ?? null))
+  const outsiderMembers = await api('GET', `/chat/groups/${groupId}/members`, ld.body.value)
+  check('非成员查看成员列表被拒（403）', outsiderMembers.status === 403 && /不是该群成员/.test(outsiderMembers.body.reason ?? ''), `status=${outsiderMembers.status} ${outsiderMembers.body.reason ?? ''}`)
+  const noGroupMembers = await api('GET', `/chat/groups/${crypto.randomUUID()}/members`, la.body.value)
+  check('查看不存在的群的成员返回 404', noGroupMembers.status === 404, `status=${noGroupMembers.status}`)
+
+  // 17.7 拉人入群：任何成员都可以，被拉入无需本人同意
+  const bobAdds = await api('POST', `/chat/groups/${groupId}/members`, lb.body.value, { userId: med.body.id })
+  check('任何成员都可以拉人入群（Bob 拉入 Dave，成员数 = 4）', bobAdds.status === 200 && bobAdds.body.memberCount === 4, JSON.stringify(bobAdds.body))
+  const listDAfterJoin = await api('GET', '/chat/groups', ld.body.value)
+  check('被拉入者（Dave）的群列表立即出现该群', listDAfterJoin.body.some((g) => g.id === groupId), JSON.stringify(listDAfterJoin.body.map((g) => g.id)))
+  const dupAdd = await api('POST', `/chat/groups/${groupId}/members`, la.body.value, { userId: med.body.id })
+  check('重复拉入已在群内的用户返回 409', dupAdd.status === 409 && /已在群内/.test(dupAdd.body.reason ?? ''), `status=${dupAdd.status} ${dupAdd.body.reason ?? ''}`)
+  const ghostAdd = await api('POST', `/chat/groups/${groupId}/members`, la.body.value, { userId: crypto.randomUUID() })
+  check('拉入不存在的用户返回明确错误', ghostAdd.status === 400 && /不存在/.test(ghostAdd.body.reason ?? ''), `status=${ghostAdd.status} ${ghostAdd.body.reason ?? ''}`)
+  const outsiderAdd = await api('POST', `/chat/groups/${groupId}/members`, le.body.value, { userId: mee.body.id })
+  check('非成员拉人入群被拒（403）', outsiderAdd.status === 403 && /不是该群成员/.test(outsiderAdd.body.reason ?? ''), `status=${outsiderAdd.status} ${outsiderAdd.body.reason ?? ''}`)
+
+  // 17.8 退群：只能退自己，不能踢人
+  const kickRes = await api('DELETE', `/chat/groups/${groupId}/members/${meb.body.id}`, la.body.value)
+  check('创建者也不能移出其他成员（403）', kickRes.status === 403 && /不能移出其他成员/.test(kickRes.body.reason ?? ''), `status=${kickRes.status} ${kickRes.body.reason ?? ''}`)
+  const leaveRes = await api('DELETE', `/chat/groups/${groupId}/members/${meb.body.id}`, lb.body.value)
+  check('可以退自己所在的群，成员数减少到 3', leaveRes.status === 200 && leaveRes.body.memberCount === 3, JSON.stringify(leaveRes.body))
+  const listBAfterLeave = await api('GET', '/chat/groups', lb.body.value)
+  check('退群后该群从我的群列表消失', !listBAfterLeave.body.some((g) => g.id === groupId), JSON.stringify(listBAfterLeave.body.map((g) => g.id)))
+  const membersAfterLeave = await api('GET', `/chat/groups/${groupId}/members`, lb.body.value)
+  check('退群后失去该群访问权（查看成员 403）', membersAfterLeave.status === 403, `status=${membersAfterLeave.status}`)
+  const leaveAgain = await api('DELETE', `/chat/groups/${groupId}/members/${meb.body.id}`, lb.body.value)
+  check('重复退群返回 403（已不是成员）', leaveAgain.status === 403 && /无法退群/.test(leaveAgain.body.reason ?? ''), `status=${leaveAgain.status} ${leaveAgain.body.reason ?? ''}`)
+
+  // 17.9 改群名/头像：仅创建者
+  const carolPatch = await api('PATCH', `/chat/groups/${groupId}`, lc.body.value, { name: '被非创建者改名' })
+  check('非创建者改群名被拒（403）', carolPatch.status === 403 && /只有群创建者/.test(carolPatch.body.reason ?? ''), `status=${carolPatch.status} ${carolPatch.body.reason ?? ''}`)
+  const patchRes = await api('PATCH', `/chat/groups/${groupId}`, la.body.value, { name: '三人群（已改名）', avatar: 'group-avatar' })
+  check('创建者可改群名与头像', patchRes.status === 200 && patchRes.body.name === '三人群（已改名）' && patchRes.body.avatar === 'group-avatar', JSON.stringify(patchRes.body))
+  const listAfterPatch = await api('GET', '/chat/groups', lc.body.value)
+  check('改名后其他成员看到的群名同步更新', listAfterPatch.body.find((g) => g.id === groupId)?.name === '三人群（已改名）', JSON.stringify(listAfterPatch.body.map((g) => g.name)))
+  const patchOnlyAvatar = await api('PATCH', `/chat/groups/${groupId}`, la.body.value, { avatar: 'group-avatar-2' })
+  check('可以只改头像（群名不变）', patchOnlyAvatar.status === 200 && patchOnlyAvatar.body.avatar === 'group-avatar-2' && patchOnlyAvatar.body.name === '三人群（已改名）', JSON.stringify(patchOnlyAvatar.body))
+  const emptyNamePatch = await api('PATCH', `/chat/groups/${groupId}`, la.body.value, { name: '   ' })
+  check('群名改为空被拒（400）', emptyNamePatch.status === 400 && /群名称不能为空/.test(emptyNamePatch.body.reason ?? ''), `status=${emptyNamePatch.status} ${emptyNamePatch.body.reason ?? ''}`)
+  const noFieldPatch = await api('PATCH', `/chat/groups/${groupId}`, la.body.value, {})
+  check('不带任何字段的修改被拒（400）', noFieldPatch.status === 400 && /缺少要修改/.test(noFieldPatch.body.reason ?? ''), `status=${noFieldPatch.status} ${noFieldPatch.body.reason ?? ''}`)
+  const noGroupPatch = await api('PATCH', `/chat/groups/${crypto.randomUUID()}`, la.body.value, { name: '不存在的群' })
+  check('修改不存在的群返回 404', noGroupPatch.status === 404, `status=${noGroupPatch.status}`)
+
+  // 18. 群消息端到端流转（群聊 03）：扇出 → 入库 → 历史 → 会话列表
+  // Alice/Bob/Carol 三人各持一条在线连接；Eve 也建连接，用于验证「非成员收不到」
+  const chatGroupRes = await api('POST', '/chat/groups', la.body.value, {
+    name: '消息流转群',
+    memberIds: [meb.body.id, mec.body.id]
+  })
+  const chatGroupId = chatGroupRes.body.id
+  check('建群成功：Alice/Bob/Carol 三人', chatGroupRes.status === 200 && chatGroupRes.body.memberCount === 3, JSON.stringify(chatGroupRes.body))
+
+  const eve = await wsConnect(le.body.value)
+
+  // 群消息：data.to 增加 type=group，userid 位置填群 id（ADR-0002：扩展现有协议）
+  function sendGroupMessage(ws, me, content, msgType) {
+    ws.send(JSON.stringify({
+      type: 'chatMessage',
+      data: {
+        mine: {
+          avatar: me.avatar, content, mine: true,
+          userid: me.id, username: me.account, nickname: me.nickname,
+          ...(msgType ? { msgType } : {})
+        },
+        to: { avatar: 'default', userid: chatGroupId, username: '', nickname: '', type: 'group' }
+      }
+    }))
+  }
+
+  const gAlice1 = '群-1：大家好'
+  sendGroupMessage(alice.ws, mea.body, gAlice1, 'text')
+  const bobGotG1 = await waitUntil(() => bob.inbox.some((m) => m.data?.mine?.content === gAlice1))
+  const carolGotG1 = await waitUntil(() => carol.inbox.some((m) => m.data?.mine?.content === gAlice1))
+  const bobG1 = bob.inbox.find((m) => m.data?.mine?.content === gAlice1)
+  const carolG1 = carol.inbox.find((m) => m.data?.mine?.content === gAlice1)
+  check('群消息扇出：Bob 与 Carol 各收到一份', !!bobGotG1 && !!carolGotG1, JSON.stringify([bobG1?.data?.mine?.content, carolG1?.data?.mine?.content]))
+  check('扇出的两份是同一条消息（id 一致）', typeof bobG1?.data?.id === 'string' && bobG1?.data?.id === carolG1?.data?.id, JSON.stringify([bobG1?.data?.id, carolG1?.data?.id]))
+  check('推送的收件主体为群（to.type=group、to.userid=群 id）', bobG1?.data?.to?.type === 'group' && bobG1?.data?.to?.userid === chatGroupId, JSON.stringify(bobG1?.data?.to ?? null))
+  check('群消息推送带服务端时间戳', typeof bobG1?.data?.timestamp === 'number', JSON.stringify(bobG1?.data?.timestamp))
+  const aliceAckG1 = await waitUntil(() => alice.inbox.some((m) => m.type === 'chatMessageAck' && m.data?.content === gAlice1))
+  check('发送者收到群消息确认（ack）', !!aliceAckG1, '')
+  check('发送者自己不回推群消息', !alice.inbox.some((m) => m.type === 'chatMessage' && m.data?.mine?.content === gAlice1), '')
+
+  // 三连接同群互发：Bob →（Alice + Carol）、Carol →（Alice + Bob）
+  const gBob2 = '群-2：Bob 收到'
+  sendGroupMessage(bob.ws, meb.body, gBob2, 'text')
+  await waitUntil(() => alice.inbox.some((m) => m.data?.mine?.content === gBob2) && carol.inbox.some((m) => m.data?.mine?.content === gBob2))
+  const aliceG2 = alice.inbox.find((m) => m.data?.mine?.content === gBob2)
+  const carolG2 = carol.inbox.find((m) => m.data?.mine?.content === gBob2)
+  check('Bob 的群消息扇出给 Alice 与 Carol', !!aliceG2 && !!carolG2, JSON.stringify([aliceG2?.data?.mine?.content, carolG2?.data?.mine?.content]))
+  check('群聊推送携带发送者真实昵称（气泡据此渲染）', aliceG2?.data?.mine?.nickname === 'Bob' && aliceG2?.data?.mine?.userid === meb.body.id, JSON.stringify(aliceG2?.data?.mine ?? null))
+
+  const gCarol3 = '群-3：Carol 也在'
+  sendGroupMessage(carol.ws, mec.body, gCarol3, 'text')
+  await waitUntil(() => alice.inbox.some((m) => m.data?.mine?.content === gCarol3) && bob.inbox.some((m) => m.data?.mine?.content === gCarol3))
+  check('Carol 的群消息扇出给 Alice 与 Bob（三连接同群互发）', alice.inbox.some((m) => m.data?.mine?.content === gCarol3) && bob.inbox.some((m) => m.data?.mine?.content === gCarol3), '')
+
+  // 群聊同样以连接绑定的身份为准：Alice 在 payload 里冒用 Dave 的身份
+  const gSpoof = '群-4：我冒充 Dave'
+  alice.ws.send(JSON.stringify({
+    type: 'chatMessage',
+    data: {
+      mine: { avatar: 'hacker', content: gSpoof, mine: true, userid: med.body.id, username: daveAccount, nickname: '假的Dave', msgType: 'text' },
+      to: { avatar: 'default', userid: chatGroupId, username: '', nickname: '', type: 'group' }
+    }
+  }))
+  const spoofGot = await waitUntil(() => bob.inbox.some((m) => m.data?.mine?.content === gSpoof))
+  const gSpoofMsg = bob.inbox.find((m) => m.data?.mine?.content === gSpoof)
+  check('群聊伪造发件人无效：接收方看到的仍是连接绑定的身份', !!spoofGot && gSpoofMsg?.data?.mine?.userid === mea.body.id && gSpoofMsg?.data?.mine?.nickname === 'Alice', JSON.stringify(gSpoofMsg?.data?.mine ?? null))
+
+  // 未携带 msgType 的群消息按 text 处理
+  const gNoType = '群-5：不带 msgType'
+  sendGroupMessage(bob.ws, meb.body, gNoType)
+  await waitUntil(() => alice.inbox.some((m) => m.data?.mine?.content === gNoType))
+  check('未携带 msgType 的群消息正常扇出', alice.inbox.some((m) => m.data?.mine?.content === gNoType), '')
+
+  // 非成员发群消息被拒
+  const gEve = '群-6：Eve 想混进来'
+  sendGroupMessage(eve.ws, mee.body, gEve, 'text')
+  const eveRejected = await waitUntil(() => eve.inbox.some((m) => m.type === 'chatMessageError'))
+  const eveError = eve.inbox.find((m) => m.type === 'chatMessageError')
+  check('非成员发群消息被拒（chatMessageError）', !!eveRejected && /不是该群成员/.test(eveError?.data?.reason ?? ''), JSON.stringify(eveError ?? null))
+  await sleep(300)
+  check('被拒的群消息不扇出给任何成员', !alice.inbox.some((m) => m.data?.mine?.content === gEve) && !bob.inbox.some((m) => m.data?.mine?.content === gEve) && !carol.inbox.some((m) => m.data?.mine?.content === gEve), '')
+  check('非成员收不到群消息（Eve 的连接只收到错误帧）', !eve.inbox.some((m) => m.type === 'chatMessage'), JSON.stringify(eve.inbox.map((m) => m.type)))
+
+  // 群历史：peer 直接传群 id
+  const gHistRes = await fetch(`${BASE}/chat/history?peer=${encodeURIComponent(chatGroupId)}`, { headers: { Authorization: `Bearer ${la.body.value}` } })
+  const gHist = gHistRes.status === 200 ? await gHistRes.json() : { messages: [], hasMore: false }
+  const gHistContents = gHist.messages.map((m) => m.content)
+  check(
+    '群历史返回全部 5 条群消息（按时间正序）',
+    gHistRes.status === 200 && gHistContents.length === 5 && [gAlice1, gBob2, gCarol3, gSpoof, gNoType].every((t) => gHistContents.includes(t)),
+    JSON.stringify(gHistContents)
+  )
+  check(
+    '群历史方向正确（fromSelf）',
+    gHist.messages.find((m) => m.content === gAlice1)?.fromSelf === true && gHist.messages.find((m) => m.content === gBob2)?.fromSelf === false,
+    JSON.stringify(gHist.messages.map((m) => [m.content, m.fromSelf]))
+  )
+  check(
+    '群历史带发送者身份（昵称与 id，渲染群气泡用）',
+    gHist.messages.find((m) => m.content === gBob2)?.senderNickname === 'Bob' && gHist.messages.find((m) => m.content === gBob2)?.senderUserId === meb.body.id,
+    JSON.stringify(gHist.messages.find((m) => m.content === gBob2) ?? null)
+  )
+  check('未携带 msgType 的群消息按 text 入库', gHist.messages.find((m) => m.content === gNoType)?.msgType === 'text', JSON.stringify(gHist.messages.find((m) => m.content === gNoType) ?? null))
+  check(
+    '伪造发件人的群消息以服务端身份入库',
+    gHist.messages.find((m) => m.content === gSpoof)?.senderNickname === 'Alice' && gHist.messages.find((m) => m.content === gSpoof)?.fromSelf === true,
+    JSON.stringify(gHist.messages.find((m) => m.content === gSpoof) ?? null)
+  )
+  check('被拒的非成员消息不在群历史里', !gHistContents.includes(gEve), JSON.stringify(gHistContents))
+
+  const gPage1 = await (await fetch(`${BASE}/chat/history?peer=${encodeURIComponent(chatGroupId)}&limit=2`, { headers: { Authorization: `Bearer ${la.body.value}` } })).json()
+  check('群历史支持分页（limit=2，hasMore=true）', gPage1.messages.length === 2 && gPage1.hasMore === true && gPage1.messages[1]?.content === gNoType, JSON.stringify(gPage1.messages.map((m) => m.content)))
+
+  const eveGHistRes = await fetch(`${BASE}/chat/history?peer=${encodeURIComponent(chatGroupId)}`, { headers: { Authorization: `Bearer ${le.body.value}` } })
+  check('非成员查群历史被拒（403，不返回空数组）', eveGHistRes.status === 403 && /不是该群成员/.test((await eveGHistRes.json()).reason ?? ''), `status=${eveGHistRes.status}`)
+
+  // 离线成员靠历史补回：Dave 入群但不建 WS 连接
+  const daveJoin = await api('POST', `/chat/groups/${chatGroupId}/members`, la.body.value, { userId: med.body.id })
+  check('拉 Dave 入群（成员数 4）', daveJoin.status === 200 && daveJoin.body.memberCount === 4, JSON.stringify(daveJoin.body))
+  const gOffline = '群-7：Dave 离线时错过的'
+  sendGroupMessage(alice.ws, mea.body, gOffline, 'text')
+  await sleep(300)
+  const daveGHist = await (await fetch(`${BASE}/chat/history?peer=${encodeURIComponent(chatGroupId)}`, { headers: { Authorization: `Bearer ${ld.body.value}` } })).json()
+  check(
+    '离线成员靠历史补回群消息（且只看得到入群之后的）',
+    daveGHist.messages.length === 1 && daveGHist.messages[0].content === gOffline && daveGHist.messages[0].fromSelf === false && daveGHist.messages[0].senderNickname === 'Alice',
+    JSON.stringify(daveGHist.messages.map((m) => m.content))
+  )
+  const sessDave = await (await fetch(`${BASE}/chat/sessions`, { headers: { Authorization: `Bearer ${ld.body.value}` } })).json()
+  const daveGroupSession = sessDave.find((s) => s.peer.userid === chatGroupId)
+  check('入群后的群会话出现在该成员会话列表，预览为入群后的消息', daveGroupSession?.kind === 'group' && daveGroupSession?.lastMessage?.content === gOffline, JSON.stringify(daveGroupSession ?? null))
+
+  // 会话列表：群会话与单聊会话一起返回
+  await sleep(300)
+  const sessGroupA = await (await fetch(`${BASE}/chat/sessions`, { headers: { Authorization: `Bearer ${la.body.value}` } })).json()
+  const groupSession = sessGroupA.find((s) => s.peer.userid === chatGroupId)
+  check(
+    '会话列表出现群会话（kind=group + 群名 + 成员数）',
+    groupSession?.kind === 'group' && groupSession?.peer.nickname === '消息流转群' && groupSession?.memberCount === 4,
+    JSON.stringify(groupSession ?? null)
+  )
+  check('群会话最后一条为最新的群消息', groupSession?.lastMessage?.content === gOffline && groupSession?.lastMessage?.fromSelf === true, JSON.stringify(groupSession?.lastMessage ?? null))
+  const directWithBob = sessGroupA.find((s) => s.kind === 'direct' && s.peer.userid === meb.body.id)
+  check('单聊会话标记为 kind=direct 且不带成员数', !!directWithBob && directWithBob.memberCount == null, JSON.stringify(directWithBob ?? null))
+  check('群会话与单聊会话按最后消息时间倒序（最新群消息置顶）', sessGroupA[0]?.peer.userid === chatGroupId, JSON.stringify(sessGroupA.map((s) => [s.kind, s.peer.userid])))
+
+  // 入群前已存在的消息，入群后看不到（决策记录第 4 条：重新加入不回溯旧消息）
+  const eveJoinRes = await api('POST', `/chat/groups/${chatGroupId}/members`, la.body.value, { userId: mee.body.id })
+  check('把 Eve 拉入群（成员数 5）', eveJoinRes.status === 200 && eveJoinRes.body.memberCount === 5, JSON.stringify(eveJoinRes.body))
+  const eveHistBefore = await (await fetch(`${BASE}/chat/history?peer=${encodeURIComponent(chatGroupId)}`, { headers: { Authorization: `Bearer ${le.body.value}` } })).json()
+  check('入群后仍看不到入群前的历史', eveHistBefore.messages.length === 0, JSON.stringify(eveHistBefore.messages.map((m) => m.content)))
+  const sessEve = await (await fetch(`${BASE}/chat/sessions`, { headers: { Authorization: `Bearer ${le.body.value}` } })).json()
+  check('没有入群后消息的群不出现在会话列表', !sessEve.some((s) => s.peer.userid === chatGroupId), JSON.stringify(sessEve.map((s) => [s.kind, s.peer.userid])))
+
+  const gAfterEve = '群-8：Eve 入群之后才有的'
+  sendGroupMessage(alice.ws, mea.body, gAfterEve, 'text')
+  await sleep(300)
+  const eveHistAfter = await (await fetch(`${BASE}/chat/history?peer=${encodeURIComponent(chatGroupId)}`, { headers: { Authorization: `Bearer ${le.body.value}` } })).json()
+  check('入群之后的新消息可见（且仍看不到入群前的）', eveHistAfter.messages.length === 1 && eveHistAfter.messages[0].content === gAfterEve, JSON.stringify(eveHistAfter.messages.map((m) => m.content)))
+  check('入群后可实时收到群消息', eve.inbox.some((m) => m.data?.mine?.content === gAfterEve), JSON.stringify(eve.inbox.map((m) => m.data?.mine?.content ?? m.type)))
+
+  // 退群后：群会话从会话列表消失、群历史不可查
+  await api('DELETE', `/chat/groups/${chatGroupId}/members/${meb.body.id}`, lb.body.value)
+  await sleep(300)
+  const sessBAfterLeave = await (await fetch(`${BASE}/chat/sessions`, { headers: { Authorization: `Bearer ${lb.body.value}` } })).json()
+  check('退群后群会话从会话列表消失', !sessBAfterLeave.some((s) => s.peer.userid === chatGroupId), JSON.stringify(sessBAfterLeave.map((s) => [s.kind, s.peer.userid])))
+  const bobGHistRes = await fetch(`${BASE}/chat/history?peer=${encodeURIComponent(chatGroupId)}`, { headers: { Authorization: `Bearer ${lb.body.value}` } })
+  check('退群后查群历史被拒（403）', bobGHistRes.status === 403, `status=${bobGHistRes.status}`)
+
+  // 单聊行为不变（回归）：不带 to.type 的消息仍按单聊投递
+  const dmAfterGroup = '群聊落地后单聊照常'
+  alice.ws.send(JSON.stringify({
+    type: 'chatMessage',
+    data: {
+      mine: { avatar: mea.body.avatar, content: dmAfterGroup, mine: true, userid: mea.body.id, username: aliceAccount, nickname: 'Alice', msgType: 'text' },
+      to: { avatar: 'default', userid: meb.body.id, username: bobAccount, nickname: 'Bob' }
+    }
+  }))
+  const bobDmOk = await waitUntil(() => bob.inbox.some((m) => m.data?.mine?.content === dmAfterGroup))
+  const bobDmMsg = bob.inbox.find((m) => m.data?.mine?.content === dmAfterGroup)
+  check('单聊行为不变：不带 to.type 的消息仍按单聊投递', !!bobDmOk, '')
+  check('单聊推送的收件主体为 user（协议扩展不破坏旧格式）', bobDmMsg?.data?.to?.type === 'user' && bobDmMsg?.data?.to?.userid === meb.body.id, JSON.stringify(bobDmMsg?.data?.to ?? null))
+  await sleep(300)
+  const gHistFinal = await (await fetch(`${BASE}/chat/history?peer=${encodeURIComponent(chatGroupId)}`, { headers: { Authorization: `Bearer ${la.body.value}` } })).json()
+  check('单聊消息不会串进群历史', !gHistFinal.messages.some((m) => m.content === dmAfterGroup), JSON.stringify(gHistFinal.messages.map((m) => m.content)))
+  const dmHistFinal = await (await fetch(`${BASE}/chat/history?peer=${encodeURIComponent(meb.body.id)}`, { headers: { Authorization: `Bearer ${la.body.value}` } })).json()
+  check('单聊消息仍进单聊历史', dmHistFinal.messages.some((m) => m.content === dmAfterGroup), JSON.stringify(dmHistFinal.messages.map((m) => m.content)))
+
   alice.ws.close()
   bob.ws.close()
+  carol.ws.close()
+  eve.ws.close()
   await sleep(300)
 
   const failed = results.filter((r) => !r.ok)

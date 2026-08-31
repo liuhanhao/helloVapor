@@ -43,6 +43,16 @@ public func configure(_ app: Application) throws {
     
     // 消息表新增 msgType 字段
     app.migrations.add(AddMessageMsgType())
+
+    // 上传文件归属记录（A4）
+    app.migrations.add(Upload.Migration())
+
+    // 群与群成员（群聊 01）
+    app.migrations.add(Group.Migration())
+    app.migrations.add(GroupMember.Migration())
+
+    // message 表新增收件主体字段（群聊 01），旧数据按单聊回填
+    app.migrations.add(AddMessageRecipient())
     
     // register routes
     try routes(app)

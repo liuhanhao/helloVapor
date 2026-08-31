@@ -60,6 +60,38 @@ func routes(_ app: Application) throws {
         try await ChatHistoryController.history(req: req)
     }
 
+    // 用户查询（issue 05）：按账号或用户 ID 查询用户的公开身份，用于发起新会话。
+    // 返回 User.Public（id / 头像 / 昵称 / 账号），不含密码散列等敏感字段。
+    tokenProtected.get("chat", "users") { req async throws -> [User.Public] in
+        try await UserQueryController.search(req: req)
+    }
+
+    // 建群与成员管理（群聊 02）：建群者自动成为成员且为 owner；
+    // 任何成员可拉人，只有创建者可改群信息，只能退自己不能踢人
+    tokenProtected.post("chat", "groups") { req async throws -> GroupSummaryDTO in
+        try await GroupController.create(req: req)
+    }
+
+    tokenProtected.get("chat", "groups") { req async throws -> [GroupSummaryDTO] in
+        try await GroupController.list(req: req)
+    }
+
+    tokenProtected.get("chat", "groups", ":id", "members") { req async throws -> [GroupMemberDTO] in
+        try await GroupController.members(req: req)
+    }
+
+    tokenProtected.post("chat", "groups", ":id", "members") { req async throws -> GroupSummaryDTO in
+        try await GroupController.addMember(req: req)
+    }
+
+    tokenProtected.delete("chat", "groups", ":id", "members", ":userId") { req async throws -> GroupSummaryDTO in
+        try await GroupController.leaveGroup(req: req)
+    }
+
+    tokenProtected.patch("chat", "groups", ":id") { req async throws -> GroupSummaryDTO in
+        try await GroupController.update(req: req)
+    }
+
     // 媒体文件上传（issue 03）：标准 multipart 表单（msgType + file），
     // 按 msgType 校验类型与大小，UUID 命名存入 Public/uploads/，返回文件 URL。
     // 替代原先硬编码单一文件（uploadFile/666.jpg）的上传下载接口。

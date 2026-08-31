@@ -6,3 +6,7 @@ DerivedData/
 db.sqlite
 .swiftpm
 .env
+
+# 上传的媒体文件（运行期产物）：由 /chat/upload 写入，经 /uploads/<文件名> 访问。
+# 联调与冒烟产生的测试录音录像不应进仓库；清理策略见 .scratch/ROADMAP.md 的 A3
+hello/Public/uploads/

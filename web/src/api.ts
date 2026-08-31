@@ -1,4 +1,10 @@
-import type { HistoryPage, SessionSummary, UserInfo } from './types'
+import type {
+  GroupMember,
+  GroupSummary,
+  HistoryPage,
+  SessionSummary,
+  UserInfo
+} from './types'
 
 // 服务端返回的错误结构
 interface ApiErrorResponse {
@@ -73,7 +79,8 @@ export function fetchMe(token: string): Promise<UserInfo> {
   })
 }
 
-// 会话列表：按联系人分组返回对方身份与最后一条消息，按时间倒序
+// 会话列表：单聊与群聊条目统一返回（条目带 kind 与群成员数），按最后消息时间倒序。
+// 只含有过消息的会话——还没发过言的群要由 GET /chat/groups 补进列表
 // （服务端时间戳为 Unix 秒，这里统一转为毫秒）
 export async function fetchSessions(token: string): Promise<SessionSummary[]> {
   const raw = await request<SessionSummary[]>('/chat/sessions', {
@@ -85,7 +92,8 @@ export async function fetchSessions(token: string): Promise<SessionSummary[]> {
   }))
 }
 
-// 历史消息：与指定联系人的双方消息按时间正序分页返回
+// 历史消息：与指定收件主体（联系人用户 id 或群 id）的消息按时间正序分页返回
+// 群 id 与用户 id 同为 UUID，由服务端查表区分；非成员查群历史会被拒
 // opts.before 为毫秒时间戳，取该时间之前（不含）的更早消息
 export async function fetchHistory(
   token: string,
@@ -102,6 +110,53 @@ export async function fetchHistory(
     hasMore: page.hasMore,
     messages: page.messages.map((m) => ({ ...m, createdAt: m.createdAt * 1000 }))
   }
+}
+
+// 查询用户（issue 05）：按账号或用户 ID 查询，返回公开身份信息（不含密码等敏感字段）。
+// 查不到时返回空数组，由界面给出明确提示
+export function searchUsers(token: string, keyword: string): Promise<UserInfo[]> {
+  return request<UserInfo[]>(`/chat/users?q=${encodeURIComponent(keyword)}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  })
+}
+
+// 我加入的群（按创建时间倒序）
+export function fetchGroups(token: string): Promise<GroupSummary[]> {
+  return request<GroupSummary[]>('/chat/groups', {
+    headers: { Authorization: `Bearer ${token}` }
+  })
+}
+
+// 建群：memberIds 不含自己（创建者自动入群且为群创建者），被拉入无需本人同意
+export function createGroup(
+  token: string,
+  name: string,
+  memberIds: string[]
+): Promise<GroupSummary> {
+  return request<GroupSummary>('/chat/groups', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ name, memberIds })
+  })
+}
+
+// 群成员列表（非成员访问被拒）
+export function fetchGroupMembers(token: string, groupId: string): Promise<GroupMember[]> {
+  return request<GroupMember[]>(`/chat/groups/${encodeURIComponent(groupId)}/members`, {
+    headers: { Authorization: `Bearer ${token}` }
+  })
+}
+
+// 退群：只能退自己，退群即失去该群的访问权
+export function leaveGroup(
+  token: string,
+  groupId: string,
+  userId: string
+): Promise<GroupSummary> {
+  return request<GroupSummary>(
+    `/chat/groups/${encodeURIComponent(groupId)}/members/${encodeURIComponent(userId)}`,
+    { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }
+  )
 }
 
 // 上传媒体文件（multipart 表单）：按 msgType 校验类型与大小，返回可访问的文件 URL。

@@ -80,7 +80,7 @@ enum UploadController {
     // POST /chat/upload —— multipart 表单上传，按 msgType 校验类型与大小，UUID 命名存储
     static func upload(req: Request) async throws -> UploadResponseDTO {
         // 需要登录（token 鉴权）；未携带 token 在解析表单前即返回 401
-        _ = try req.auth.require(User.self)
+        let user = try req.auth.require(User.self)
 
         let payload = try req.content.decode(UploadPayload.self)
 
@@ -116,8 +116,25 @@ enum UploadController {
             throw Abort(.internalServerError, reason: "文件保存失败")
         }
 
+        let url = "/uploads/\(storedName)"
+
+        // 记录归属（A4）：文件已落盘、URL 也已确定，记录失败不影响本次上传结果，
+        // 只打印错误——不能因为一条旁路的记录写不进去就让已经成功的文件上传失败
+        let record = Upload(
+            ownerId: user.id?.uuidString ?? "",
+            url: url,
+            msgType: msgType,
+            storedName: storedName,
+            size: size
+        )
+        do {
+            try await record.save(on: req.db)
+        } catch {
+            print("上传记录写入失败: \(storedName) -> \(error)")
+        }
+
         print("文件已上传: \(storedName)（\(size) 字节）")
-        return UploadResponseDTO(url: "/uploads/\(storedName)")
+        return UploadResponseDTO(url: url)
     }
 }
 
