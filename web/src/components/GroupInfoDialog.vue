@@ -4,6 +4,7 @@ import { describeError } from '../api'
 import { useChatStore } from '../stores/chat'
 import { useAuthStore } from '../stores/auth'
 import type { GroupMember } from '../types'
+import ProfileCard from './ProfileCard.vue'
 
 // left：退群成功（本地会话已由 store 移除），由使用方关闭弹窗
 const emit = defineEmits<{ left: []; close: [] }>()
@@ -18,6 +19,8 @@ const loadError = ref('')
 const confirming = ref(false)
 const leaving = ref(false)
 const leaveError = ref('')
+// 点成员条目打开的资料卡（数据已在成员列表里，不额外发请求）
+const memberProfile = ref<{ userid: string; nickname: string; username: string } | null>(null)
 
 const groupName = computed(() => chat.recipientNames[props.groupId] ?? props.groupId)
 
@@ -30,6 +33,14 @@ onMounted(async () => {
     loading.value = false
   }
 })
+
+function openProfile(m: GroupMember) {
+  memberProfile.value = {
+    userid: m.userid,
+    nickname: m.nickname || m.username || m.userid,
+    username: m.username
+  }
+}
 
 // 退群不可逆（退群后失去该群的访问权），先要一次确认
 async function leave() {
@@ -65,7 +76,7 @@ async function leave() {
       <p v-if="loading" class="tip">成员加载中…</p>
       <p v-else-if="loadError" class="error">{{ loadError }}</p>
       <ul v-else class="members">
-        <li v-for="m in members" :key="m.userid">
+        <li v-for="m in members" :key="m.userid" title="查看资料" @click="openProfile(m)">
           <span class="avatar">{{ (m.nickname || m.userid).slice(0, 1).toUpperCase() }}</span>
           <span class="who">
             {{ m.nickname }}
@@ -91,6 +102,15 @@ async function leave() {
         </template>
       </div>
     </div>
+
+    <!-- 成员资料卡：叠在群信息弹窗之上 -->
+    <ProfileCard
+      v-if="memberProfile"
+      :userid="memberProfile.userid"
+      :nickname="memberProfile.nickname"
+      :username="memberProfile.username"
+      @close="memberProfile = null"
+    />
   </div>
 </template>
 
@@ -158,6 +178,11 @@ h3 {
   gap: 8px;
   padding: 8px 10px;
   border-bottom: 1px solid #f2f3f5;
+  cursor: pointer;
+}
+
+.members li:hover {
+  background: #f7f8fa;
 }
 
 .members li:last-child {

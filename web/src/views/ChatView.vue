@@ -3,12 +3,14 @@ import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { AUDIO_UPLOAD, IMAGE_UPLOAD, VIDEO_UPLOAD } from '../config'
 import { describeError } from '../api'
+import { writeClipboard } from '../clipboard'
 import { useAuthStore } from '../stores/auth'
 import { useChatStore } from '../stores/chat'
 import type { MessageItem, SessionSummary } from '../types'
 import EmojiPanel from '../components/EmojiPanel.vue'
 import CreateGroupDialog from '../components/CreateGroupDialog.vue'
 import GroupInfoDialog from '../components/GroupInfoDialog.vue'
+import ProfileCard from '../components/ProfileCard.vue'
 // 图标取自 koboyo.com/icons（SVG，不引入图标库依赖）
 import smileIcon from '../assets/icons/smile.svg'
 import searchIcon from '../assets/icons/magnifying-glass.svg'
@@ -50,6 +52,8 @@ let copyNoticeTimer: number | undefined
 // 建群与群信息弹窗
 const createGroupOpen = ref(false)
 const groupInfoOpen = ref(false)
+// 联系人资料卡（单聊顶栏点昵称打开；群成员的资料卡由群信息弹窗自己管）
+const contactProfile = ref<{ userid: string; nickname: string; username: string } | null>(null)
 
 const currentMessages = computed(() =>
   chat.currentRecipientId ? chat.conversations[chat.currentRecipientId] ?? [] : []
@@ -69,6 +73,18 @@ const currentIsGroup = computed(() =>
 const currentMemberCount = computed(
   () => chat.sessions.find((s) => s.peer.userid === chat.currentRecipientId)?.memberCount ?? 0
 )
+
+// 单聊顶栏的昵称可点开联系人资料；群聊走「群信息」里的成员列表。
+// 数据取自会话列表（已带 userid / 账号 / 昵称），不额外发请求
+function openContactProfile() {
+  const s = chat.sessions.find((x) => x.peer.userid === chat.currentRecipientId)
+  if (!s) return
+  contactProfile.value = {
+    userid: s.peer.userid,
+    nickname: s.peer.nickname || s.peer.username || s.peer.userid,
+    username: s.peer.username
+  }
+}
 
 function sessionName(s: SessionSummary): string {
   return s.peer.nickname || s.peer.username || s.peer.userid
@@ -270,37 +286,6 @@ function showCopyNotice(text: string, failed: boolean) {
   }, 2000)
 }
 
-// 写入剪贴板：优先 Clipboard API；它在非安全上下文（http 且非 localhost，如用局域网 IP 访问）
-// 下不存在或被拒，此时降级到临时 textarea + execCommand。两者都失败返回 false
-function writeClipboard(text: string): boolean | Promise<boolean> {
-  if (navigator.clipboard?.writeText) {
-    return navigator.clipboard
-      .writeText(text)
-      .then(() => true)
-      .catch(() => legacyCopy(text))
-  }
-  return legacyCopy(text)
-}
-
-function legacyCopy(text: string): boolean {
-  const ta = document.createElement('textarea')
-  ta.value = text
-  ta.setAttribute('readonly', '')
-  ta.style.position = 'fixed'
-  ta.style.top = '0'
-  ta.style.opacity = '0'
-  document.body.appendChild(ta)
-  ta.select()
-  ta.setSelectionRange(0, text.length)
-  try {
-    return document.execCommand('copy')
-  } catch {
-    return false
-  } finally {
-    document.body.removeChild(ta)
-  }
-}
-
 async function copyMyId() {
   if (!auth.user) return
   const ok = await writeClipboard(auth.user.id)
@@ -416,7 +401,13 @@ onUnmounted(() => {
             {{ peerTitle }}
             <span class="member-count">{{ currentMemberCount }} 人</span>
           </span>
-          <span v-else class="header-title">与 {{ peerTitle }} 的会话</span>
+          <span v-else class="header-title">
+            与
+            <button class="peer-link" title="查看联系人资料" @click="openContactProfile">
+              {{ peerTitle }}
+            </button>
+            的会话
+          </span>
           <button v-if="currentIsGroup" class="group-info" @click="groupInfoOpen = true">
             群信息
           </button>
@@ -563,6 +554,15 @@ onUnmounted(() => {
       :group-id="chat.currentRecipientId"
       @left="groupInfoOpen = false"
       @close="groupInfoOpen = false"
+    />
+
+    <!-- 联系人资料：昵称 / 账号 / 用户 ID -->
+    <ProfileCard
+      v-if="contactProfile"
+      :userid="contactProfile.userid"
+      :nickname="contactProfile.nickname"
+      :username="contactProfile.username"
+      @close="contactProfile = null"
     />
 
     <!-- 原图查看浮层：点击任意处关闭 -->
@@ -873,6 +873,20 @@ onUnmounted(() => {
   border-radius: 6px;
   padding: 4px 12px;
   font-size: 12px;
+}
+
+/* 顶栏里的联系人昵称：可点开资料卡，样式贴近普通文字以免看着像按钮 */
+.peer-link {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: #165dff;
+  cursor: pointer;
+}
+
+.peer-link:hover {
+  text-decoration: underline;
 }
 
 .message-list {
