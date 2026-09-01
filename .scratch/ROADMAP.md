@@ -24,7 +24,8 @@
   4. **锁的选型**：`NSLock` 被标了 `noasync`，在 async 上下文调用会告警，封装成同步方法也躲不掉；actor 要 `await`，会切离 event loop；`Synchronization.Mutex` 要 macOS 15+（本工程声明的是 12）。当前用 pthread 互斥锁。真要外置连接表时改用 NIO 的 `NIOLockedValueBox`（需给 `Package.swift` 加 `swift-nio` 显式依赖；`WebSocket` 本身是 `Sendable`，可以直接装）。
   5. **Fluent 查询**：`\.$value == x` 写在 guard 链里推断不出 Root，要写成 `\UserToken.$value`，且文件需 `import Fluent`。
 - **B5 部分完成**：`web/e2e-check.mjs` 接入 `npm run e2e`（默认打 8080，可用 `BASE` 覆盖）。CI 集成与前端单测仍缺。
-- 测试现状：`npm run e2e` **151 项**服务端联调断言全绿（8080 实测：基线 77 + 02 号 ticket 的 33 项群管理 + 03 号 ticket 的 41 项群聊）；UI 仍靠手工冒烟。
+- **未读计数（B1）已交付并验收完毕**（3 个 tickets 全部 resolved，spec 与 issue 文件保留在 `.scratch/unread-count/` 未按「执行完即清理」删除——本节末尾的推翻记录与 ADR-0003 都指向它）：服务端 `read_states` 已读位点 + `POST /chat/read` + `GET /chat/sessions` 的 `unreadCount` + Web 端角标与清零。
+- 测试现状：`npm run e2e` **196 项**服务端联调断言全绿（8080 实测：基线 77 + 群管理 33 + 群聊 41 + 未读 25 + 撤回 20）；`npm test` **13 项** store 层单测全绿（vitest）。UI 仍靠冒烟（未读、B7、B2 的冒烟均已用 CDP 自动化补做，证据见 `.scratch/unread-count/issues/03`、`.scratch/group-manage/issues/02`、`.scratch/message-recall/issues/03`）。
 
 ## 本次规划时发现的两件事
 
@@ -46,19 +47,17 @@
 
 ### P1 — 单聊体验补齐
 
-**B0 · iOS 端联网改造**（本次规划新增，B4 的前置）
-- 范围：iOS 端接登录（取 token）、修正 WS 连接 URL（scheme / 端口 / 路径 / token）、消息改为经 WS 收发而非本地模拟。
-- 为什么：不先做这个，B4（iOS 媒体消息）无从谈起——媒体消息得先有通道。
-- Blocked by：无（A1 后连接协议已确定）。
+**B0 · iOS 端联网改造** — ❌ `wontfix`（2026-09-01 定：iOS 端暂缓，资源全部投 Web）
+- 原范围：iOS 端接登录（取 token）、修正 WS 连接 URL（scheme / 端口 / 路径 / token）、消息改为经 WS 收发而非本地模拟。
+- **为什么不做**：本轮重新评估发现它不是「修正连接 URL」——`VaporChat/NetWork/` 目录下只有 `ADSChatURL.swift`，iOS 端**没有登录、没有 token、消息收发是本地模拟**，这是重写客户端数据层，量级与「改个 URL」完全不同。在 Web 端体验补齐之前投入不划算。
+- 恢复条件：日后重启 iOS 端时，`git log -- .scratch/ROADMAP.md` 可取回本条原文；同时要重新评估 iOS 端数据层现状。
 
-**B1 · 未读消息计数** — ✅ 已决策，tickets 已就绪（Status: ready-for-agent）
-- spec：`.scratch/unread-count/spec.md`（含「决策记录」，5 条全部拍板）；ADR：`docs/adr/0003-unread-count-server-side-read-cursor.md`
-- tickets：`issues/01` 已读位点数据模型与迁移 → `issues/02` 标记已读接口与会话列表未读数 → `issues/03` 前端未读角标与清零（按阻塞边顺序认领）
-- 范围：会话列表显示未读数，进入会话后清零。
-- **已决策：服务端已读位点**（新增 `read_states` 表）——**推翻**本文件原先的「先做前端本地计数」，原决策的唯一前提「群聊尚未落地」已消失，且本地计数会漏计页面关闭期间的消息。理由与代价见 ADR-0003 与本节末尾「待办 / 遗留」的推翻记录。
-- 已定：**无位点时全部算未读**（不会漏报且自愈）、**群消息与单聊同一套规则**（数字 99+ 封顶）、**位点用时间戳不用消息 id**、**不做「标记为未读」**
+**B1 · 未读消息计数** — ✅ **已交付并验证完毕**（3 个 tickets 全部 resolved）
+- spec：`.scratch/unread-count/spec.md`；ADR：`docs/adr/0003-unread-count-server-side-read-cursor.md`
+- 交付面：`read_states` 表 + `POST /chat/read`（upsert 位点，非成员 403）+ `GET /chat/sessions` 的 `unreadCount`（**零额外消息查询**，在既有内存遍历里累加）+ Web 端角标与三条标记已读路径（打开会话立即发 / 会话内新消息 1s 合批 / 切换会话补发上一个）
+- 已定：**服务端已读位点**（推翻原先的「前端本地计数」，理由见本节末尾推翻记录）、**无位点时全部算未读**（不漏报且自愈）、**群消息与单聊同一套规则**（99+ 封顶）、**位点用时间戳不用消息 id**、**不做「标记为未读」**、**未读不落 localStorage**（服务端是唯一真相）
 - 词汇「已读位点」已写入 `CONTEXT.md`
-- Blocked by：无硬前置（A1 与群聊 01~04 均已 resolved）
+- **已知上限（继承 C1 的上限）**：`GET /chat/sessions` 全量取消息再内存过滤。量上来后**未读计数与会话列表必须一起改成 SQL 侧聚合，不要只改其中一个**。
 
 **B6 · 联系人资料卡** ✅ 已交付
 - 范围：单聊顶栏点昵称 / 群信息页点成员 → 弹出资料卡（昵称、账号、用户 ID，可复制 userid）。
@@ -67,21 +66,61 @@
 - 顺带把 `writeClipboard` 从 `ChatView.vue` 抽到 `web/src/clipboard.ts`——顶栏「复制我的 ID」与资料卡共用。
 - Blocked by：无。
 
-**B2 · 消息撤回与删除**
-- 范围：协议新增撤回类型（沿 ADR-0002「扩展而非重新设计」路线），撤回后气泡变提示、会话列表预览同步更新。
-- Blocked by：A1（已 resolved）。
+**B7 · 群改名与拉人入群的前端入口** — ✅ **已交付并验证完毕**（2026-09-01，2 个 tickets 全部 resolved）
+- spec：`.scratch/group-manage/spec.md`；tickets：`issues/01` 接口封装与群状态同步 → `issues/02` 改名与拉人界面（均已 resolved，证据见各 ticket 的 Comments）
+- 范围：群信息弹窗补「改群名」（仅创建者可见）与「拉人入群」，拉人复用既有的 `searchUsers` 选人；改名/加人后同步三处状态（`groups` / `sessions` 条目 / `recipientNames`）。
+- **零后端改动**：`PATCH /chat/groups/:id`（`GroupController.update`）与 `POST /chat/groups/:id/members`（`addMember`）已实现并注册在 `tokenProtected` 下，且 **e2e 第 17 节已把它们的全部分支覆盖**（非创建者 403 / 重复拉人 409 / 幽灵用户 400 / 空名 400 / 空 body 400）——本功能**不需要新增任何服务端用例**，176 项继续全绿即是验收标准。
+- 为什么优先：候选池里唯一「不动协议、不动迁移」的一块，且补的是真实断点（建完的群既不能改名也不能加人）。先做它给后面的 B2/B8 留一条干净的回归基线。
+- **两个易踩的形状坑**（已写进 spec）：① `addMember` 只收**单个** `userId`，与建群的 `memberIds` 数组不同形；② 改名后必须同步 `sessions` 条目的 `peer.nickname`，否则「列表改名了、气泡标题还是旧的」。
+- Blocked by：无。
+
+**B8 · 消息搜索**（本次规划新增，Status: `needs-triage`）
+- 范围（待定）：当前会话内按关键词搜索 + 跨会话全局搜索；SQLite 下 `LIKE` 就够，量上来再谈索引。
+- 为什么：会话一多，「翻页找一条历史消息」是 IM 最常见的痛点之一，而 `GET /chat/history` 只支持按时间翻页，没有按内容检索。
+- 待定（2026-09-01 本次规划）：① 群消息的搜索结果**要沿用 `GroupMember.requireMembership` 的可见性规则**（否则退群后仍能搜到群里的旧消息），以及入群时间过滤——这两条与 `GET /chat/history` 必须一致。② **全局搜索的入口形态**——独立搜索页，还是会话列表顶部的过滤框？后者成本低得多，但只能过滤已有会话，搜不到「不在列表里的历史消息」。③ 要不要返回**上下文**（命中消息前后各几条）——只返命中项的话，点进去还要重新翻页。④ 媒体消息的 `content` 是 URL，按关键词搜不到内容，要不要按 `msgType` 显示成「[图片]」并允许按类型过滤。
+- Blocked by：无硬前置。
+
+**B10 · 删除消息（仅我删）**（2026-09-01 从 B2 拆出，Status: `needs-info`）
+- 范围（待定）：把一条消息从**我自己**的视图里删掉，对别人不可见地保留。
+- **为什么要跟撤回分开**：撤回改的是消息本身（所有人都不看），删除要 per-user 的删除标记——是两套数据模型。更要紧的是**未读语义不同**：已撤回的消息仍算一条未读（它还在、只是换成提示），而我删掉的消息**不该**再算我的未读。混在一个功能里会让未读出现两种互相矛盾的规则。
+- **开工前要定的**：① 删掉的消息在会话列表预览里怎么显示（直接跳过、显示上一条）；② 删除能不能撤销；③ 与撤回的关系——撤回过的消息还能不能再删。
+- Blocked by：无硬前置，但上述决策未定 → `needs-info`。
+
+**B9 · 输入中（typing indicator）**（本次规划新增，Status: `needs-info`）
+- 范围（待定）：沿 ADR-0002「扩展而非重新设计」，WS 加一种提示帧，对端气泡区显示「正在输入…」。
+- **缺这三条就不能开 spec**：① 停止输入的判定——对端超时还是失焦事件？超时几秒？② 节流策略——每次按键一帧会打爆连接；③ 群聊里要不要显示（200 人群刷「正在输入」是噪音，可能只显示第一个，或干脆只做单聊）。
+- Blocked by：无硬前置，但上面三条不定就是 `needs-info`。
+
+**B2 · 消息撤回（B10 单列出「删除」）** — ✅ **已交付并验证完毕**（2026-09-01，3 个 tickets 全部 resolved）
+- spec：`.scratch/message-recall/spec.md`；tickets：`01` 撤回标记与读取不泄漏原文 → `02` 撤回接口与 WS 协议帧 → `03` 前端入口与渲染
+- 四项语义已拍板并写进 spec 的「决策记录」：**不限时 / 软删 / 撤回后未读数不变 / 新增协议帧实时通知**
+- 交付面：`message.recalled_at` + `POST /chat/messages/:id/recall` + `chatMessageRecalled` 帧 + `WebSocketService.broadcast` seam + 前端撤回入口与提示行渲染
+- 词汇「撤回（Recall）」已写入 `CONTEXT.md`
+- **「删除（仅我删）已拆为 B10」**——见 P1 里 B10 条目。撤回改的是消息本身，删除要 per-user 标记，且**未读语义不同**（我删掉的不该算我未读，已撤回的仍算），是两套数据模型
+- **已知上限（继承 C1 / 未读）**：`GET /chat/sessions` 全量取消息再内存过滤，撤回不改这一点；撤回**不清理媒体文件**（文件仍留在 `Public/uploads/`，与 A3 的孤儿文件回收一并处理）
 
 **B3 · 头像上传与个人资料编辑**
 - 范围：复用上传能力新增头像类型，支持改昵称/头像；`User.avatar` 目前只是 `'default'` 字符串。
+- **已决策（2026-09-01）：历史消息气泡的头像跟随新头像。** 实现上历史接口按 `senderUserId` 回查 `users` 表取权威头像/昵称，不再沿用 `ChatMessage.mine.avatar` 快照。代价是历史接口多一次查询；收益是全局只有一张脸。
 - Blocked by：A3、A4（均已 resolved）。
 
-**B4 · iOS 端媒体消息**
-- 范围：iOS 端发送与渲染图片/音频/视频。
-- Blocked by：**B0**（本次修正：原先只依赖「协议已预留 `msgType`」，忽略了 iOS 端尚无联网能力）。
+**B4 · iOS 端媒体消息** — ❌ `wontfix`（2026-09-01 定，随 B0 一并暂缓）
+- 原范围：iOS 端发送与渲染图片/音频/视频。
+- 为什么不做：Blocked by **B0**，而 B0 已标 `wontfix`。原先只依赖「协议已预留 `msgType`」，忽略了 iOS 端尚无联网能力——媒体消息得先有通道。
 
-**B5 · 自动化测试转正**（部分完成）
-- 范围：~~把 `e2e-check.mjs` 接进 npm script~~ ✅（`npm run e2e`）；**剩余**：接进 CI、补前端 store 层单测。
-- 为什么：群聊会同时动协议、数据模型和前端状态，没有回归网风险高。
+**B5 · 自动化测试转正** — ✅ **已完成**（2026-09-01）
+- ✅ `npm run e2e`：**176 项**服务端联调断言
+- ✅ `npm test`：**10 项** `stores/chat.ts` 状态逻辑单测（vitest，`src/stores/chat.test.ts`）
+- ✅ CI：`.github/workflows/web.yml`（Linux：build + 单测）与 `.github/workflows/e2e.yml`（macOS：起 Vapor 服务跑联调）
+
+**CI 为什么按路径拆成两个 workflow**：e2e 需要一个真跑在 8080 的 Vapor 服务，而 `hello/Package.swift` **只声明了 `.macOS(.v12)`**，Linux 上 `swift build` 不被支持——**这是硬约束，不是保守**。macOS runner 分钟数是 Linux 的 10 倍，所以 e2e job 只在 `hello/**` 或 `web/e2e-check.mjs` 变更时触发，纯前端改动不烧这份配额。
+> 日后想让 e2e 上 Linux：先给 `Package.swift` 加 Linux 平台，**并验证 FluentSQLiteDriver 在那边的行为**，再改 runner——别在 CI 上赌。
+
+**测试环境为什么没用 happy-dom**（`src/test-setup.ts` 的由来）：`window.localStorage` 与全局 `localStorage` 是**同一个裸对象**，`getItem / setItem / removeItem / clear` 一个都没有（happy-dom 14 与 15 均复现，与 vitest 2.1 搭配时）。stores 只依赖 `window.setTimeout`（标记已读合批）与 `localStorage`（auth store 初始化即读）两个全局，所以改成 `environment: 'node'` + 最小垫片：`window` 指向 `globalThis`，配一个内存版 Storage。**不为一个 Storage 拉进整个 DOM 实现。** 附带好处：`window === globalThis`，`vi.useFakeTimers()` 能同时管住 `window.setTimeout`。
+
+**单测覆盖什么**：未读累加与清零、当前会话新消息走合批而非累加、会话置顶去重、历史与实时消息按 id 合并、群改名/拉人的三处状态同步、退群清理、401 清登录态。**不做组件快照**——维护成本高于收益。
+
+**测试有效性做过变异校验**：临时去掉 `applyGroupSummary` 里的会话列表同步，2 项测试如预期失败，确认这套测试不是空跑通过。
 
 ### P2 — 架构扩展
 
@@ -106,17 +145,46 @@
 - 顺带收益：上了 HTTPS/正式域名后，浏览器剪贴板 API 进入安全上下文，「复制 userid」的降级路径自然消失。
 - Blocked by：无硬阻塞（A2、A3 已完成）。
 
+**C3 · 群角色与权限（群主转让 / 踢人 / 禁言 / 群公告 / 解散）**（本次规划新增，Status: `needs-info`）
+- 为什么现在不能开工：当前权限只有一条隐式规则「仅创建者可改群名」（`GroupController` 里硬编码比对 `ownerId`）。要做转让/踢人/禁言，得先把**群角色**变成领域概念——`CONTEXT.md` 现在只有「成员」，没有「群主 / 管理员」，也没定角色能不能叠加。
+- **前置的产品决策（不定就没法写 spec）**：① **无主群归谁**——C1 的已知上限：owner 退群后群变无主，「自动转让」与「随最后一人退出而解散」语义完全不同，各有代价；② 群公告算**消息**还是算**群属性**（决定它进不进 `message` 表、算不算未读）；③ 禁言是「不能发」还是「发了丢弃」（涉及要不要给发送方回 `chatMessageError` 帧）。
+- Blocked by：无硬前置，但上述决策未定 → `needs-info`。
+
+**C4 · 会话免打扰与置顶**（本次规划新增，Status: `needs-info`）
+- 为什么现在浮现：未读角标上线后，「这个群别提醒我」是紧接着的自然需求。
+- **待决策**：免打扰时未读**还算不算**？「算但不角标」与「完全不算」会走向不同的数据模型——后者要在 `read_states` 之外再记一层「该会话是否计入」，且和「无位点全量计入」的自愈语义正面冲突。置顶要不要跨端同步（不同步就只是前端 localStorage，同步就得进库）。
+- Blocked by：无硬前置。
+
+**C5 · @提及与「有人@我」单独计数**（本次规划新增，Status: `needs-info`）
+- 背景：群聊 spec 与未读 spec **都**把它列为 Out of Scope，未读 spec 还明确写了「@提及单独计数」不做。现在群聊与未读都已落地，可以重新评估，但不要当成顺手就能加的。
+- **待决策**：@提及是「未读的一个筛选项」还是「独立的一层计数」；被 @ 的人已读后，别人看到的未读怎么算；提及信息存消息体还是单独的关系表。
+- Blocked by：无硬前置。
+
+## 不做的（已定 `wontfix`，勿重复提案）
+
+- **iOS 端联网改造与媒体消息（B0 / B4）** —— 2026-09-01 定：资源全部投 Web 端。B0 实为重写 iOS 客户端数据层（该端当前无登录、无 token、消息收发是本地模拟），不是「修正连接 URL」。恢复条件见 P1 里 B0 条目。
+- **已读回执（「对方看没看我的消息」）** —— 与 `CONTEXT.md` 的「已读位点」方向相反，混用会让接口语义彻底错位。未读 spec 已明确列为 Out of Scope。
+- **好友关系与添加好友流程** —— 联系人由历史消息推导，用户靠 userid / 账号发起会话。加好友要重做数据模型，不是加个按钮。
+- **消息转发** —— 原 Web IM spec 的 Out of Scope。
+- **按消息 id 的精确已读位点** —— 未读 spec 已定为用时间戳，代价（同秒到达的边界不精确）对未读计数没有实际影响。
+
 ## 建议批次
 
 1. **批次一（安全与卫生）** ✅ ~~A1 → A2 → A3 → A4~~ 全部完成
 2. **批次二（回归网 + 群聊）** ✅ ~~群聊 01 → 02 → 03 → 04~~ 全部完成（B5 仅完成 `npm run e2e` 部分，CI 集成与前端单测仍缺）
-3. **批次三（补齐与生产化）**：**B1 → B2 → B3 → B0 → B4 → C2 生产化**
+3. **批次三（补齐与生产化）**：✅ ~~B1 未读计数~~ 全部完成（3 个 tickets 全部 resolved）
+4. **批次四（2026-09-01 确认的顺序）**：✅ ~~B7 群改名与拉人~~ → ✅ ~~B5 回归网~~ → ✅ ~~B2 消息撤回~~ 均已完成 → **B8**
+5. **批次五**：**B3**（历史头像语义已定，可直接开 spec）
+6. **批次六（生产化）**：**C2**
+
+**批次四的顺序理由**（2026-09-01 确认）：**B7 打头**——服务端接口早已就绪，缺口只在前端，是候选池里唯一「不动协议、不动迁移」的一块，且补的是真实断点（建完的群既不能改名也不能加人），先做它给后面的 B2/B8 留一条干净的回归基线。**B5 紧跟**——B2 要扩展协议、B8 要加查询，回归网缺位等于蒙眼改，且它已连续两批被跳过。**B2 在 B8 之前**——B2 是四者里唯一会引入数据变更的（新迁移 + 新协议帧），越早做，后面越少在两种协议形态上反复。
 
 **为什么把群聊提到体验补齐（B1/B2/B3）前面**（2026-09-01 注：这段是当时的判断，B1 的决策现已拍板，见 ADR-0003）：群聊的 tickets 已经描述完整、阻塞边清晰，可以直接认领开工；而 B1（未读）还卡在一个产品决策上（服务端已读位点 vs 前端本地计数）。先把能确定推进的推完，决策等它自然成熟。B5 收尾放最前，是因为群聊要同时动协议、数据模型和前端状态组织方式——没有回归网等于蒙眼改，而它只要半天到一天。
 
 ## 待办 / 遗留
 
 - **清理 8081 上的遗留进程**（issue 05 联调时起的，跑的是旧构建）。8080 是本轮新构建（PID 4547），A1~A4 均已生效。
+- ~~**B3 开工前必须先定的一件事**~~ ✅ **2026-09-01 已定：跟随（回查 `users` 表）**。起因是本轮规划发现的不一致：消息里存的是发送时的**头像/昵称快照**（`ChatMessage.mine.avatar` → `HistoryMessageDTO.senderAvatar`），而会话列表优先取 `users` 表的**权威值**（`ChatHistoryController.sessions` 里 `usersById` 命中就覆盖快照）——改头像后同一个人会出现两张脸。定「跟随」后历史接口要按 `senderUserId` 回查 `users` 表，多一次查询换全局一致；B3 开工照此实现即可。
 - **A3 的清理策略未定**：既有测试媒体一个都没删（`chatMessage.db` 里有对应的媒体消息，删了会 404），孤儿文件回收与配额也没有——有了 A4 的归属数据之后再做。
 - **A4 的访问控制未收紧**：媒体 URL 仍是公开直链。原因是浏览器加载 `<img>`/`<audio>`/`<video>` 不带 `Authorization` 头，「受控路由 + Bearer」走不通，只剩签名 URL（需处理历史消息里 URL 过期）或 token 拼 query（等于把长期凭证当短期链接用）。现在文件名是 UUID 不可枚举，风险有限，等真有外部访问需求再收紧。
 - ~~C1 群聊停在 `needs-info`~~ ✅ 已拍板并拆成 4 个 tickets；**每个 ticket 开工前请清空上下文**（当前会话已经很长，继续堆会影响判断质量）。

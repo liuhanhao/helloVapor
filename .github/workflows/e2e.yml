@@ -1,0 +1,65 @@
+name: E2E
+
+# 服务端联调（web/e2e-check.mjs）：需要一个真跑在 8080 的 Vapor 服务。
+#
+# 为什么走 macOS runner：hello/Package.swift 只声明了 .macOS(.v12)，在 Linux 上
+# swift build 不被支持。这不是保守，是硬约束——要上 Linux 得先给 Package.swift 加
+# Linux 平台并验证 FluentSQLiteDriver 在那边的行为，别在 CI 上赌。
+#
+# macOS 分钟数是 Linux 的 10 倍，所以这个 job 只在服务端或联调脚本变更时触发。
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'hello/**'
+      - 'web/e2e-check.mjs'
+      - '.github/workflows/e2e.yml'
+  pull_request:
+    paths:
+      - 'hello/**'
+      - 'web/e2e-check.mjs'
+      - '.github/workflows/e2e.yml'
+
+jobs:
+  e2e:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Node 22+：e2e-check.mjs 用全局 WebSocket 与 crypto.randomUUID
+          node-version: '22'
+
+      - name: 构建服务端
+        working-directory: hello
+        run: swift build
+
+      - name: 启动服务端
+        working-directory: hello
+        # 数据库路径是 workingDirectory + chatMessage.db（见 configure.swift），
+        # 所以必须在 hello/ 下启动，迁移与 DB 文件都落在那里
+        run: nohup swift run Run > /tmp/vapor.log 2>&1 &
+
+      - name: 等待服务就绪
+        run: |
+          for i in $(seq 1 90); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/chat/login || true)
+            # 000 = 还没连上；任何 HTTP 状态码（含该路由的 404）都说明服务已经起来了
+            if [ "$code" != "000" ]; then
+              echo "服务已就绪（HTTP $code）"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "服务 90 秒内未就绪，服务端日志："
+          cat /tmp/vapor.log
+          exit 1
+
+      - name: 跑服务端联调
+        working-directory: web
+        run: node e2e-check.mjs
+
+      - name: 失败时输出服务端日志
+        if: failure()
+        run: cat /tmp/vapor.log

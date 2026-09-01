@@ -1,9 +1,16 @@
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vitest/config'
 import vue from '@vitejs/plugin-vue'
 
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [vue()],
+  // 只测 stores 的状态逻辑（不做组件快照）。环境取 node + test-setup.ts 里的
+  // 最小 window/localStorage 垫片，不引 DOM 实现
+  test: {
+    environment: 'node',
+    include: ['src/**/*.test.ts'],
+    setupFiles: ['./src/test-setup.ts']
+  },
   server: {
     port: 5173,
     // 开发期代理后端请求，避免跨域（服务端同时启用 CORS 作为兜底）。

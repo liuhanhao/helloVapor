@@ -3,7 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { describeError } from '../api'
 import { useChatStore } from '../stores/chat'
 import { useAuthStore } from '../stores/auth'
-import type { GroupMember } from '../types'
+import type { GroupMember, UserInfo } from '../types'
 import ProfileCard from './ProfileCard.vue'
 
 // left：退群成功（本地会话已由 store 移除），由使用方关闭弹窗
@@ -23,6 +23,23 @@ const leaveError = ref('')
 const memberProfile = ref<{ userid: string; nickname: string; username: string } | null>(null)
 
 const groupName = computed(() => chat.recipientNames[props.groupId] ?? props.groupId)
+// 仅创建者可改群信息（服务端已定死）。判定直接比 ownerId——本功能不引入「管理员/群主」角色
+const isOwner = computed(() => chat.groups[props.groupId]?.ownerId === auth.user?.id)
+
+// 改群名：内联编辑，两个字段的事不值得套一层弹窗
+const editing = ref(false)
+const nameDraft = ref('')
+const renaming = ref(false)
+const renameError = ref('')
+
+// 拉人入群：任何成员可拉。服务端一次只收一个 userId，被拉入无需本人同意
+const inviteOpen = ref(false)
+const inviteKeyword = ref('')
+const inviteSearching = ref(false)
+const inviteResults = ref<UserInfo[]>([])
+const inviting = ref(false)
+const inviteError = ref('')
+const inviteTip = ref('')
 
 onMounted(async () => {
   try {
@@ -39,6 +56,71 @@ function openProfile(m: GroupMember) {
     userid: m.userid,
     nickname: m.nickname || m.username || m.userid,
     username: m.username
+  }
+}
+
+function startRename() {
+  nameDraft.value = groupName.value
+  renameError.value = ''
+  editing.value = true
+}
+
+async function submitRename() {
+  const name = nameDraft.value.trim()
+  // 服务端对空名返回 400，前端先拦一次，省一次往返
+  if (!name || renaming.value) return
+  renaming.value = true
+  renameError.value = ''
+  try {
+    await chat.renameGroup(props.groupId, name)
+    editing.value = false
+  } catch (e) {
+    renameError.value = describeError(e, '改群名失败，请稍后重试')
+  } finally {
+    renaming.value = false
+  }
+}
+
+// 已在群内的人直接禁选，避免让用户撞上服务端的 409「该用户已在群内」
+function isMember(userId: string): boolean {
+  return members.value.some((m) => m.userid === userId)
+}
+
+async function searchInvitee() {
+  const kw = inviteKeyword.value.trim()
+  if (!kw || inviteSearching.value) return
+  inviteSearching.value = true
+  inviteError.value = ''
+  inviteTip.value = ''
+  try {
+    inviteResults.value = await chat.searchUser(kw)
+    if (inviteResults.value.length === 0) {
+      inviteError.value = '未找到该用户，请检查账号或用户 ID 是否正确'
+    }
+  } catch (e) {
+    inviteError.value = describeError(e, '查询用户失败，请稍后重试')
+  } finally {
+    inviteSearching.value = false
+  }
+}
+
+async function invite(u: UserInfo) {
+  if (inviting.value) return
+  inviting.value = true
+  inviteError.value = ''
+  inviteTip.value = ''
+  try {
+    await chat.addGroupMember(props.groupId, u.id)
+    members.value = await chat.loadGroupMembers(props.groupId)
+    inviteResults.value = []
+    inviteKeyword.value = ''
+    // 拉人没有实时通知，被拉的人要等下次 loadGroups 才看得到群。
+    // 静默成功会让操作者以为失败了，所以必须说出来
+    inviteTip.value = `已把 ${u.nickname} 拉进群（现 ${members.value.length} 人），对方下次打开时才会看到这个群`
+  } catch (e) {
+    inviteError.value = describeError(e, '拉人入群失败，请稍后重试')
+  } finally {
+    inviting.value = false
   }
 }
 
@@ -66,8 +148,24 @@ async function leave() {
 
       <div class="row">
         <span class="label">群名称</span>
-        <span class="value">{{ groupName }}</span>
+        <template v-if="editing">
+          <input
+            v-model="nameDraft"
+            class="name-input"
+            maxlength="30"
+            @keyup.enter="submitRename"
+          />
+          <button class="link" :disabled="renaming" @click="submitRename">
+            {{ renaming ? '保存中…' : '保存' }}
+          </button>
+          <button class="link" @click="editing = false">取消</button>
+        </template>
+        <template v-else>
+          <span class="value">{{ groupName }}</span>
+          <button v-if="isOwner" class="link" @click="startRename">改群名</button>
+        </template>
       </div>
+      <p v-if="renameError" class="error">{{ renameError }}</p>
       <div class="row">
         <span class="label">成员</span>
         <span class="value">{{ members.length }} 人</span>
@@ -86,6 +184,31 @@ async function leave() {
         </li>
       </ul>
 
+      <div v-if="inviteOpen" class="invite">
+        <div class="search-row">
+          <input
+            v-model="inviteKeyword"
+            placeholder="输入对方账号或 userid 查找"
+            @keyup.enter="searchInvitee"
+          />
+          <button :disabled="inviteSearching" @click="searchInvitee">
+            {{ inviteSearching ? '查找中…' : '查找' }}
+          </button>
+        </div>
+        <ul v-if="inviteResults.length > 0" class="results">
+          <li v-for="u in inviteResults" :key="u.id">
+            <span class="who">
+              {{ u.nickname }}
+              <span class="account">{{ u.account }}</span>
+            </span>
+            <button v-if="isMember(u.id)" class="picked" disabled>已在群内</button>
+            <button v-else :disabled="inviting" @click="invite(u)">拉入</button>
+          </li>
+        </ul>
+      </div>
+      <p v-if="inviteTip" class="tip">{{ inviteTip }}</p>
+      <p v-if="inviteError" class="error">{{ inviteError }}</p>
+
       <p v-if="leaveError" class="error">{{ leaveError }}</p>
 
       <div class="actions">
@@ -97,6 +220,9 @@ async function leave() {
           </button>
         </template>
         <template v-else>
+          <button class="ghost" @click="inviteOpen = !inviteOpen">
+            {{ inviteOpen ? '收起' : '拉人入群' }}
+          </button>
           <button class="ghost" @click="emit('close')">关闭</button>
           <button class="danger" @click="confirming = true">退群</button>
         </template>
@@ -160,6 +286,111 @@ h3 {
   min-width: 0;
   word-break: break-all;
   color: #1d2129;
+}
+
+/* 改群名的内联编辑：沿用建群弹窗的输入框与按钮样式 */
+.name-input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  padding: 5px 8px;
+  outline: none;
+  font-size: 13px;
+  font-family: inherit;
+}
+
+.link {
+  flex-shrink: 0;
+  border: none;
+  background: none;
+  color: #165dff;
+  font-size: 13px;
+  padding: 0;
+}
+
+.link:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.invite {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.search-row {
+  display: flex;
+  gap: 8px;
+}
+
+.search-row input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  padding: 8px 10px;
+  outline: none;
+  font-size: 13px;
+  font-family: inherit;
+}
+
+.search-row button {
+  flex-shrink: 0;
+  border: none;
+  background: #165dff;
+  color: #fff;
+  border-radius: 6px;
+  padding: 8px 14px;
+  font-size: 13px;
+}
+
+.search-row button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.results {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid #f2f3f5;
+  border-radius: 6px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.results li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-bottom: 1px solid #f2f3f5;
+}
+
+.results li:last-child {
+  border-bottom: none;
+}
+
+.results .who {
+  flex: 1;
+}
+
+.results button {
+  flex-shrink: 0;
+  border: 1px solid #165dff;
+  background: #fff;
+  color: #165dff;
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-size: 12px;
+}
+
+.results button.picked {
+  border-color: #d9d9d9;
+  color: #86909c;
+  cursor: default;
 }
 
 .members {

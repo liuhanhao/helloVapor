@@ -2,6 +2,7 @@ import type {
   GroupMember,
   GroupSummary,
   HistoryPage,
+  MessageSearchResult,
   SessionSummary,
   UserInfo
 } from './types'
@@ -112,6 +113,19 @@ export async function fetchHistory(
   }
 }
 
+// 标记已读：把我在该收件主体下的已读位点推到「现在」，服务端据此算未读数。
+// 位点存服务端，刷新页面后未读数依然准确（前端不落 localStorage）
+export function markRead(
+  token: string,
+  recipientId: string
+): Promise<{ recipientId: string; lastReadAt: number }> {
+  return request<{ recipientId: string; lastReadAt: number }>('/chat/read', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ recipientId })
+  })
+}
+
 // 查询用户（issue 05）：按账号或用户 ID 查询，返回公开身份信息（不含密码等敏感字段）。
 // 查不到时返回空数组，由界面给出明确提示
 export function searchUsers(token: string, keyword: string): Promise<UserInfo[]> {
@@ -140,6 +154,35 @@ export function createGroup(
   })
 }
 
+// 改群名（仅创建者，非创建者服务端返回 403）：返回更新后的群信息，
+// 前端据此同步会话列表里的群名与成员数
+export function updateGroup(
+  token: string,
+  groupId: string,
+  patch: { name: string }
+): Promise<GroupSummary> {
+  return request<GroupSummary>(`/chat/groups/${encodeURIComponent(groupId)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify(patch)
+  })
+}
+
+// 拉人入群（任何成员可拉，被拉入无需本人同意）：返回更新后的群信息。
+// 服务端一次只收一个 userId（AddMemberPayload 是单值），与建群的 memberIds 数组不同形——
+// 批量拉人要调用方循环，并自行处理中途失败
+export function addGroupMember(
+  token: string,
+  groupId: string,
+  userId: string
+): Promise<GroupSummary> {
+  return request<GroupSummary>(`/chat/groups/${encodeURIComponent(groupId)}/members`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ userId })
+  })
+}
+
 // 群成员列表（非成员访问被拒）
 export function fetchGroupMembers(token: string, groupId: string): Promise<GroupMember[]> {
   return request<GroupMember[]>(`/chat/groups/${encodeURIComponent(groupId)}/members`, {
@@ -156,6 +199,38 @@ export function leaveGroup(
   return request<GroupSummary>(
     `/chat/groups/${encodeURIComponent(groupId)}/members/${encodeURIComponent(userId)}`,
     { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }
+  )
+}
+
+// 消息搜索（B8）：按关键词检索我可见的消息，可见性规则与历史一致。
+// 结果是「消息」列表而非会话列表，调用方不要把它塞进会话状态
+export async function searchMessages(
+  token: string,
+  keyword: string,
+  opts: { limit?: number; offset?: number } = {}
+): Promise<MessageSearchResult> {
+  const params = new URLSearchParams({ q: keyword })
+  if (opts.limit != null) params.set('limit', String(opts.limit))
+  if (opts.offset != null) params.set('offset', String(opts.offset))
+  const res = await request<MessageSearchResult>(`/chat/messages/search?${params.toString()}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  })
+  // 服务端时间戳为 Unix 秒，这里统一转为毫秒
+  return {
+    hasMore: res.hasMore,
+    messages: res.messages.map((m) => ({ ...m, createdAt: m.createdAt * 1000 }))
+  }
+}
+
+// 撤回消息（B2）：只有发送者可撤回，服务端会实时通知对端。
+// 撤回是软删——消息行还在，但接口不再返回原文，改以提示文案下发
+export function recallMessage(
+  token: string,
+  messageId: string
+): Promise<{ id: string; recalledAt: number }> {
+  return request<{ id: string; recalledAt: number }>(
+    `/chat/messages/${encodeURIComponent(messageId)}/recall`,
+    { method: 'POST', headers: { Authorization: `Bearer ${token}` } }
   )
 }
 

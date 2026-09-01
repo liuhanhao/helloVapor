@@ -32,6 +32,8 @@ export interface MessageItem {
   uploading?: boolean
   // 发送失败的错误信息（上传被服务端拒绝或实时连接断开），存在时气泡标记失败态
   error?: string
+  // 是否已被撤回：content 此时是提示文案，渲染成居中灰色提示行而非气泡
+  recalled?: boolean
 }
 
 // 会话列表项中的收件主体身份：单聊为联系人（对方用户），群聊为群
@@ -55,7 +57,11 @@ export interface SessionSummary {
     fromSelf: boolean
     // 毫秒时间戳（0 表示尚无消息）
     createdAt: number
+    // 最后一条是否已被撤回：content 此时是提示文案，不含原文
+    recalled: boolean
   }
+  // 该会话我还没读的消息条数，由服务端按已读位点算出（前端不持久化）
+  unreadCount: number
   // 群成员数，仅群聊条目有值
   memberCount?: number
 }
@@ -70,6 +76,8 @@ export interface HistoryMessage {
   createdAt: number
   // 发送者昵称：群聊气泡靠它显示是谁说的（单聊也一并返回，前端无需分支取数）
   senderNickname: string
+  // 是否已被撤回：content 此时是提示文案，不含原文
+  recalled: boolean
 }
 
 // 群：只取界面需要的字段（服务端 /chat/groups 返回的字段子集）
@@ -77,6 +85,8 @@ export interface GroupSummary {
   id: string
   name: string
   memberCount: number
+  // 创建者 userid：界面靠它决定「改群名」入口是否可见（服务端已定仅创建者可改群信息）
+  ownerId: string
 }
 
 // 群成员（成员列表项）
@@ -89,6 +99,28 @@ export interface GroupMember {
 // 历史消息分页结果（messages 按时间正序）
 export interface HistoryPage {
   messages: HistoryMessage[]
+  hasMore: boolean
+}
+
+// 搜索结果项：除消息本身，还带「这条消息在哪个会话里说的」，前端据此跳转与显示
+export interface MessageSearchItem {
+  id: string
+  content: string
+  msgType: string
+  fromSelf: boolean
+  // 毫秒时间戳
+  createdAt: number
+  senderNickname: string
+  // 定位用：点开结果要跳到这个收件主体
+  recipientType: 'user' | 'group'
+  recipientId: string
+  // 展示用：群名或对方昵称
+  recipientName: string
+}
+
+// 搜索结果（messages 按时间倒序）。这是「消息」列表，不是会话列表
+export interface MessageSearchResult {
+  messages: MessageSearchItem[]
   hasMore: boolean
 }
 
@@ -134,5 +166,19 @@ export interface ChatErrorMessage {
   type: string
   data?: {
     reason?: string
+  }
+}
+
+// 撤回通知（chatMessageRecalled）：有人撤回了消息，客户端据此更新气泡与会话预览
+export interface ChatRecalledPayload {
+  type: string
+  data?: {
+    id?: string
+    // 收件主体类型：user / group
+    recipientType?: 'user' | 'group'
+    // 要更新哪个会话：群为群 id，单聊为**发送者**（对接收方而言这个会话的收件主体就是对方）
+    recipientId?: string
+    // 服务端生成的提示文案（如「张三撤回了一条消息」）
+    content?: string
   }
 }

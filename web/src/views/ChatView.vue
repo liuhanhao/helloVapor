@@ -43,6 +43,8 @@ const audioInput = ref<HTMLInputElement | null>(null)
 const videoInput = ref<HTMLInputElement | null>(null)
 // 媒体发送错误（预检或服务端拒绝）提示
 const uploadError = ref('')
+// 撤回失败的原因（撤回是用户主动点的，静默失败会让人以为撤掉了其实没有）
+const recallError = ref('')
 // 原图查看浮层当前显示的图片地址
 const lightboxUrl = ref<string | null>(null)
 // 复制 userid 的结果提示（2 秒后自动消失）
@@ -108,9 +110,37 @@ function sessionPreview(s: SessionSummary): string {
   return `${s.lastMessage.fromSelf ? '我：' : ''}${previewText(s.lastMessage.msgType, s.lastMessage.content)}`
 }
 
+// 未读条数：服务端按已读位点算出，本地只在收到非当前会话消息时乐观 +1
+function unreadCount(s: SessionSummary): number {
+  return chat.unreadCounts[s.peer.userid] ?? 0
+}
+
+// 角标文案：超过 99 显示「99+」，避免大群刷屏时撑破条目
+function unreadLabel(s: SessionSummary): string {
+  const n = unreadCount(s)
+  return n > 99 ? '99+' : String(n)
+}
+
 // 是否媒体消息（图片/音频/视频），决定气泡布局与内边距
 function isMedia(msg: MessageItem): boolean {
   return msg.msgType === 'image' || msg.msgType === 'audio' || msg.msgType === 'video'
+}
+
+// 只有自己已发出、已入库且未撤回的消息可撤：
+// 缺 acked（还在发送中）或 id（服务端还没确认）时接口无从定位，不显示入口
+function canRecall(msg: MessageItem): boolean {
+  return msg.fromSelf && msg.acked && !!msg.id && !msg.recalled
+}
+
+async function recall(msg: MessageItem) {
+  const recipientId = chat.currentRecipientId
+  if (!msg.id || !recipientId) return
+  recallError.value = ''
+  try {
+    await chat.recallMessage(recipientId, msg.id)
+  } catch (e) {
+    recallError.value = describeError(e, '撤回失败，请稍后重试')
+  }
 }
 
 // 群聊里别人发的消息标出是谁说的；单聊只有两个人、自己的消息不必重复署名
@@ -389,7 +419,15 @@ onUnmounted(() => {
                 </span>
                 <span class="time">{{ sessionTime(s.lastMessage.createdAt) }}</span>
               </div>
-              <div class="preview">{{ sessionPreview(s) }}</div>
+              <div class="session-bottom">
+                <span class="preview">{{ sessionPreview(s) }}</span>
+                <span
+                  v-if="unreadCount(s) > 0"
+                  class="unread-badge"
+                  :aria-label="`${unreadLabel(s)} 条未读消息`"
+                  >{{ unreadLabel(s) }}</span
+                >
+              </div>
             </div>
           </li>
         </ul>
@@ -430,12 +468,14 @@ onUnmounted(() => {
           <div
             v-for="msg in currentMessages"
             :key="msg.seq"
-            :class="['message-row', msg.fromSelf ? 'self' : 'peer']"
+            :class="['message-row', msg.fromSelf ? 'self' : 'peer', msg.recalled ? 'recalled' : '']"
           >
             <div class="message-col">
               <!-- 群聊里别人发的消息要标出是谁说的（单聊只有两个人，不需要） -->
-              <span v-if="showSenderName(msg)" class="sender-name">{{ msg.senderNickname }}</span>
-              <div :class="['bubble', isMedia(msg) ? 'media-bubble' : '']">
+              <span v-if="!msg.recalled && showSenderName(msg)" class="sender-name">{{ msg.senderNickname }}</span>
+              <!-- 已撤回：不再显示气泡，改一行居中灰色提示 -->
+              <div v-if="msg.recalled" class="recall-tip">{{ msg.content }}</div>
+              <div v-else :class="['bubble', isMedia(msg) ? 'media-bubble' : '']">
                 <template v-if="msg.msgType === 'image'">
                   <img
                     v-if="mediaSrc(msg)"
@@ -486,12 +526,22 @@ onUnmounted(() => {
                 </span>
               </div>
             </div>
+            <!-- 撤回入口：只有自己已发出且已入库的消息能撤 -->
+            <button
+              v-if="canRecall(msg)"
+              class="recall-btn"
+              title="撤回这条消息"
+              @click="recall(msg)"
+            >
+              撤回
+            </button>
           </div>
         </div>
 
         <div class="input-area">
           <p v-if="sendFailed" class="error">发送失败：实时连接未就绪，请稍后重试</p>
           <p v-if="uploadError" class="error">{{ uploadError }}</p>
+          <p v-if="recallError" class="error">{{ recallError }}</p>
           <div class="input-toolbar">
             <input
               ref="imageInput"
@@ -825,12 +875,34 @@ onUnmounted(() => {
   flex-shrink: 0;
 }
 
+/* 预览与未读角标同一行：角标固定宽度，预览吃掉剩余空间 */
+.session-bottom {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .preview {
+  flex: 1;
+  min-width: 0;
   font-size: 12px;
   color: #86909c;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* 未读角标：沿用会话列表的圆角与字号，不引图标库 */
+.unread-badge {
+  flex-shrink: 0;
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: #f53f3f;
+  color: #fff;
+  font-size: 11px;
+  line-height: 18px;
+  text-align: center;
 }
 
 .chat-main {
@@ -953,6 +1025,47 @@ onUnmounted(() => {
   font-size: 11px;
   color: #86909c;
   padding: 0 2px;
+}
+
+/* 已撤回的消息：整行居中，不再左右分列，也不显示气泡 */
+.message-row.recalled {
+  justify-content: center;
+}
+
+.recalled .message-col {
+  max-width: 100%;
+  align-items: center;
+}
+
+.recall-tip {
+  font-size: 12px;
+  color: #86909c;
+  background: #f2f3f5;
+  border-radius: 4px;
+  padding: 4px 10px;
+}
+
+/* 撤回入口：悬停才出现，避免每行都挂一个按钮抢视觉重心 */
+.recall-btn {
+  align-self: center;
+  flex-shrink: 0;
+  margin-left: 8px;
+  border: none;
+  background: none;
+  color: #86909c;
+  font-size: 12px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  visibility: hidden;
+}
+
+.message-row:hover .recall-btn {
+  visibility: visible;
+}
+
+.recall-btn:hover {
+  color: #165dff;
+  background: #f2f3f5;
 }
 
 .bubble {

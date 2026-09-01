@@ -53,6 +53,12 @@ public func configure(_ app: Application) throws {
 
     // message 表新增收件主体字段（群聊 01），旧数据按单聊回填
     app.migrations.add(AddMessageRecipient())
+
+    // 已读位点（未读计数 01）：未读数由它推出
+    app.migrations.add(ReadState.Migration())
+
+    // message 表新增撤回时间（B2 撤回 01）
+    app.migrations.add(AddMessageRecalledAt())
     
     // register routes
     try routes(app)

@@ -250,6 +250,16 @@ final class WebSocketService {
         }
     }
 
+    /// 给一组在线用户各推一份（离线用户静默跳过：与消息扇出一致，不做离线补偿）。
+    /// 抽出这个 seam 是为了让「谁在线、怎么推」只有一处说了算——撤回是第一个
+    /// 「不发消息也要推帧」的场景
+    static func broadcast(_ json: JSON, to userIds: [String]) async {
+        for userId in userIds {
+            guard let socket = connections.socket(for: userId), !socket.isClosed else { continue }
+            await send(json: json, to: socket)
+        }
+    }
+
     // 统一的发送出口（发送失败不中断后续推送：对端可能刚好断开）
     private static func send(json: JSON, to socket: WebSocket) async {
         guard let text = json.rawString() else { return }

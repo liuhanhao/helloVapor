@@ -3,23 +3,30 @@ import { defineStore } from 'pinia'
 import { WS_BASE } from '../config'
 import {
   ApiError,
+  addGroupMember as addGroupMemberApi,
   createGroup as createGroupApi,
   fetchGroups,
   fetchGroupMembers,
   fetchHistory,
   fetchSessions,
   leaveGroup as leaveGroupApi,
+  markRead as markReadApi,
+  recallMessage as recallMessageApi,
   searchUsers,
+  searchMessages as searchMessagesApi,
+  updateGroup as updateGroupApi,
   uploadMedia
 } from '../api'
 import type {
   ChatAck,
   ChatErrorMessage,
   ChatPayload,
+  ChatRecalledPayload,
   GroupMember,
   GroupSummary,
   HistoryMessage,
   MessageItem,
+  MessageSearchItem,
   SessionKind,
   SessionSummary,
   UserInfo
@@ -30,6 +37,9 @@ import { useAuthStore } from './auth'
 
 // 历史消息每页条数
 const PAGE_SIZE = 20
+
+// 会话打开期间的标记已读合批窗口：一条消息一个请求太浪费，但打开会话那次不等窗口
+const READ_THROTTLE_MS = 1000
 
 // 媒体消息类型对应的展示标签（错误提示用），与服务端 UploadRules 的规则一一对应
 const MEDIA_LABELS: Record<'image' | 'audio' | 'video', string> = {
@@ -51,6 +61,9 @@ export const useChatStore = defineStore('chat', () => {
   const recipientNames = ref<Record<string, string>>({})
   // 收件主体 id -> 会话形态：决定消息发往哪里、气泡是否显示发送者昵称
   const recipientKinds = ref<Record<string, SessionKind>>({})
+  // 收件主体 id -> 未读数。服务端是权威来源（每次 loadSessions 覆盖），
+  // 本地只在收到非当前会话消息时乐观 +1，不落 localStorage
+  const unreadCounts = ref<Record<string, number>>({})
   // 我加入的群：群 id -> 群信息（会话列表与群信息页的成员数从这里取）
   const groups = ref<Record<string, GroupSummary>>({})
   // 收件主体 id -> 历史是否已加载（首次打开会话时拉取）
@@ -62,6 +75,12 @@ export const useChatStore = defineStore('chat', () => {
   const currentRecipientId = ref<string | null>(null)
   const connected = ref(false)
   const groupsError = ref('')
+  // 搜索（B8）：结果是「消息」列表，与会话列表分开存——
+  // 混进 sessions 会让未读与置顶逻辑长出各种特例
+  const searchKeyword = ref('')
+  const searchResults = ref<MessageSearchItem[]>([])
+  const searching = ref(false)
+  const searchError = ref('')
 
   // 收件主体是不是群
   function isGroup(recipientId: string): boolean {
@@ -70,6 +89,11 @@ export const useChatStore = defineStore('chat', () => {
 
   let socket: WebSocket | null = null
   let seq = 0
+  // 标记已读的合批状态：窗口内只留一个待发请求，切换会话时先把上一个补发
+  let readTimer: number | undefined
+  let pendingReadId: string | null = null
+  // 搜索输入的合批窗口：每次按键一个请求太吵
+  let searchTimer: number | undefined
 
   function connect() {
     // 连接凭证改用 token：身份由服务端凭 token 解析，不再由客户端自报 userid
@@ -109,6 +133,8 @@ export const useChatStore = defineStore('chat', () => {
     conversations.value = {}
     recipientNames.value = {}
     recipientKinds.value = {}
+    unreadCounts.value = {}
+    clearPendingRead()
     groups.value = {}
     historyLoaded.value = {}
     hasMoreHistory.value = {}
@@ -119,6 +145,92 @@ export const useChatStore = defineStore('chat', () => {
     seq = 0
   }
 
+  // 标记已读：位点写服务端，本地未读立即清零。服务端值在下次 loadSessions 时覆盖本地
+  async function markRead(recipientId: string) {
+    unreadCounts.value[recipientId] = 0
+    const token = auth.token
+    if (!token) return
+    try {
+      await markReadApi(token, recipientId)
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 401) auth.logout()
+    }
+  }
+
+  // 合批窗口内的标记已读请求立即发出（切换会话时把上一个会话的那次补上，避免漏标）
+  function flushPendingRead() {
+    if (readTimer != null) clearTimeout(readTimer)
+    readTimer = undefined
+    const id = pendingReadId
+    pendingReadId = null
+    if (id) void markRead(id)
+  }
+
+  function clearPendingRead() {
+    if (readTimer != null) clearTimeout(readTimer)
+    readTimer = undefined
+    pendingReadId = null
+  }
+
+  // 搜索消息：按关键词检索我可见的消息，结果单独存放（不进 sessions）
+  async function searchMessages(keyword: string) {
+    const token = auth.token
+    searchKeyword.value = keyword
+    if (!token) return
+    const trimmed = keyword.trim()
+    if (!trimmed) {
+      if (searchTimer != null) clearTimeout(searchTimer)
+      searchTimer = undefined
+      searchResults.value = []
+      searchError.value = ''
+      searching.value = false
+      return
+    }
+    searching.value = true
+    searchError.value = ''
+    try {
+      searchResults.value = (await searchMessagesApi(token, trimmed, { limit: 30 })).messages
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 401) {
+        auth.logout()
+        return
+      }
+      searchResults.value = []
+      searchError.value = e instanceof Error && e.message ? e.message : '搜索失败'
+    } finally {
+      searching.value = false
+    }
+  }
+
+  // 输入防抖：合批成一次请求（setTimeout 即可，不引依赖）
+  function searchSoon(keyword: string) {
+    searchKeyword.value = keyword
+    if (searchTimer != null) clearTimeout(searchTimer)
+    if (!keyword.trim()) {
+      searchTimer = undefined
+      void searchMessages(keyword)
+      return
+    }
+    searchTimer = window.setTimeout(() => void searchMessages(keyword), SEARCH_DEBOUNCE_MS)
+  }
+
+  // 清空搜索：恢复会话列表，并清掉上一次的结果——留着会让用户以为那还是搜索结果
+  function clearSearch() {
+    if (searchTimer != null) clearTimeout(searchTimer)
+    searchTimer = undefined
+    searchKeyword.value = ''
+    searchResults.value = []
+    searchError.value = ''
+    searching.value = false
+  }
+
+  // 会话打开期间的新消息：合批成一次请求，避免每条消息一个请求
+  function markReadSoon(recipientId: string) {
+    pendingReadId = recipientId
+    if (readTimer != null) return
+    readTimer = window.setTimeout(flushPendingRead, READ_THROTTLE_MS)
+  }
+
   // 拉取会话列表（登录与刷新后调用）
   async function loadSessions() {
     const token = auth.token
@@ -127,6 +239,10 @@ export const useChatStore = defineStore('chat', () => {
     sessionsError.value = ''
     try {
       sessions.value = await fetchSessions(token)
+      // 未读以服务端为准：每次拉取都覆盖本地的乐观累加，不留第二处真相
+      unreadCounts.value = Object.fromEntries(
+        sessions.value.map((s) => [s.peer.userid, s.unreadCount])
+      )
       for (const s of sessions.value) {
         recipientNames.value[s.peer.userid] = s.peer.nickname || s.peer.username || s.peer.userid
         recipientKinds.value[s.peer.userid] = s.kind
@@ -165,7 +281,8 @@ export const useChatStore = defineStore('chat', () => {
         sessions.value.unshift({
           kind: 'group',
           peer: { userid: g.id, username: '', nickname: g.name, avatar: 'default' },
-          lastMessage: { content: '', msgType: 'text', fromSelf: false, createdAt: 0 },
+          lastMessage: { content: '', msgType: 'text', fromSelf: false, createdAt: 0, recalled: false },
+          unreadCount: 0,
           memberCount: g.memberCount
         })
       }
@@ -187,6 +304,11 @@ export const useChatStore = defineStore('chat', () => {
     kind: SessionKind = 'direct'
   ) {
     currentRecipientId.value = recipientId
+    // 打开会话即清零：这一次立即发，不等合批窗口；另有上一个会话待发的先补上
+    const pending = pendingReadId
+    clearPendingRead()
+    if (pending && pending !== recipientId) void markRead(pending)
+    void markRead(recipientId)
     recipientNames.value[recipientId] =
       identity?.nickname || identity?.username || recipientNames.value[recipientId] || recipientId
     if (!conversations.value[recipientId]) conversations.value[recipientId] = []
@@ -199,7 +321,8 @@ export const useChatStore = defineStore('chat', () => {
           nickname: identity?.nickname ?? recipientNames.value[recipientId],
           avatar: identity?.avatar ?? 'default'
         },
-        lastMessage: { content: '', msgType: 'text', fromSelf: false, createdAt: 0 },
+        lastMessage: { content: '', msgType: 'text', fromSelf: false, createdAt: 0, recalled: false },
+        unreadCount: 0,
         memberCount: kind === 'group' ? groups.value[recipientId]?.memberCount : undefined
       })
     }
@@ -265,10 +388,53 @@ export const useChatStore = defineStore('chat', () => {
     delete conversations.value[groupId]
     delete recipientNames.value[groupId]
     delete recipientKinds.value[groupId]
+    delete unreadCounts.value[groupId]
     delete groups.value[groupId]
     delete historyLoaded.value[groupId]
     delete hasMoreHistory.value[groupId]
     if (currentRecipientId.value === groupId) currentRecipientId.value = null
+    // 退群后搜索结果里可能还有这个群的消息，一并清掉
+    if (searchKeyword.value.trim()) void searchMessages(searchKeyword.value)
+  }
+
+  // 群信息变更后同步三处状态：群表、展示名、会话列表里的群条目。
+  // 三处不同步会出现「列表改名了、气泡标题还是旧的」，事后极难定位
+  function applyGroupSummary(group: GroupSummary) {
+    groups.value[group.id] = group
+    recipientNames.value[group.id] = group.name
+    const item = sessions.value.find((s) => s.peer.userid === group.id)
+    if (item) {
+      item.peer.nickname = group.name
+      item.memberCount = group.memberCount
+    }
+  }
+
+  // 改群名（仅创建者，非创建者服务端返回 403）：以服务端返回的群信息为准覆盖本地
+  async function renameGroup(groupId: string, name: string): Promise<GroupSummary> {
+    const token = auth.token
+    if (!token) throw new Error('尚未登录')
+    try {
+      const group = await updateGroupApi(token, groupId, { name })
+      applyGroupSummary(group)
+      return group
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 401) auth.logout()
+      throw e
+    }
+  }
+
+  // 拉人入群（任何成员可拉，被拉入无需本人同意）：成员数取服务端返回值，不本地 +1
+  async function addGroupMember(groupId: string, userId: string): Promise<GroupSummary> {
+    const token = auth.token
+    if (!token) throw new Error('尚未登录')
+    try {
+      const group = await addGroupMemberApi(token, groupId, userId)
+      applyGroupSummary(group)
+      return group
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 401) auth.logout()
+      throw e
+    }
   }
 
   // 按账号或用户 ID 查询用户（issue 05）：返回公开身份信息，查不到时为空数组。
@@ -314,11 +480,12 @@ export const useChatStore = defineStore('chat', () => {
           nickname: recipientNames.value[recipientId] ?? recipientId,
           avatar: 'default'
         },
-        lastMessage: { content: '', msgType: 'text', fromSelf: false, createdAt: 0 },
+        lastMessage: { content: '', msgType: 'text', fromSelf: false, createdAt: 0, recalled: false },
+        unreadCount: 0,
         memberCount: groups.value[recipientId]?.memberCount
       }
     }
-    item.lastMessage = { content, msgType, fromSelf, createdAt: timestampMs }
+    item.lastMessage = { content, msgType, fromSelf, createdAt: timestampMs, recalled: false }
     sessions.value.unshift(item)
   }
 
@@ -331,7 +498,40 @@ export const useChatStore = defineStore('chat', () => {
       msgType: m.msgType,
       timestamp: m.createdAt,
       acked: true,
-      senderNickname: m.senderNickname
+      senderNickname: m.senderNickname,
+      recalled: m.recalled
+    }
+  }
+
+  // 撤回落到本地：把该条消息换成提示文案，并按需更新会话预览。
+  // 撤回是软删——消息条数不变，所以**不动未读数**（B2 决策记录第 3 条）
+  function applyRecalled(recipientId: string, messageId: string, content?: string) {
+    const list = conversations.value[recipientId]
+    const item = list?.find((m) => m.id === messageId)
+    // content 缺省表示这是我自己发起的撤回（服务端不回推给发送者），按发送者视角补文案
+    const tip = content ?? '你撤回了一条消息'
+    if (item) {
+      item.recalled = true
+      item.content = tip
+    }
+    const session = sessions.value.find((s) => s.peer.userid === recipientId)
+    if (!session) return
+    // 只有被撤回的正是最后一条时才动预览；本地没加载这个会话时无从判断，按是处理
+    if (list && list[list.length - 1]?.id !== messageId) return
+    session.lastMessage.recalled = true
+    session.lastMessage.content = tip
+  }
+
+  // 撤回自己已发出的消息（B2）：成功后服务端实时通知对端，本地同步换成提示文案
+  async function recallMessage(recipientId: string, messageId: string): Promise<void> {
+    const token = auth.token
+    if (!token) throw new Error('尚未登录')
+    try {
+      await recallMessageApi(token, messageId)
+      applyRecalled(recipientId, messageId)
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 401) auth.logout()
+      throw e
     }
   }
 
@@ -493,7 +693,7 @@ export const useChatStore = defineStore('chat', () => {
     const meId = auth.user?.id
     if (!meId) return
 
-    let json: ChatPayload | ChatAck | ChatErrorMessage | { type: string }
+    let json: ChatPayload | ChatAck | ChatErrorMessage | ChatRecalledPayload | { type: string }
     try {
       json = JSON.parse(raw)
     } catch {
@@ -531,6 +731,13 @@ export const useChatStore = defineStore('chat', () => {
         senderNickname: group ? mine.nickname || mine.username || recipientId : undefined
       })
       bumpSession(recipientId, mine.content, mine.msgType || 'text', false, timestamp)
+      // 未读：正在看的会话直接标记已读（合批发一次），其它会话本地 +1 是乐观更新，
+      // 不发请求，等下次 loadSessions 与服务端对齐
+      if (recipientId === currentRecipientId.value) {
+        markReadSoon(recipientId)
+      } else {
+        unreadCounts.value[recipientId] = (unreadCounts.value[recipientId] ?? 0) + 1
+      }
     } else if (json.type === 'chatMessageAck') {
       // 服务端确认：标记最早一条未确认的已发消息，并补上消息 id 与服务端时间戳。
       // 上传中的媒体消息尚未经 WS 发出、已失败的消息不再期待回执，均跳过
@@ -545,6 +752,14 @@ export const useChatStore = defineStore('chat', () => {
       // 服务端拒收（如已不是群成员）：把那条消息标记为发送失败，否则用户会以为发出去了
       const pending = findPendingMessage()
       if (pending) pending.error = (json as ChatErrorMessage).data?.reason || '消息未发送'
+    } else if (json.type === 'chatMessageRecalled') {
+      // 有人撤回了消息：按收件主体定位会话、按 id 更新气泡与预览。
+      // 即便本地没加载这个会话（找不到那条消息）也要更新预览——否则界面仍显示原文，
+      // 等于撤回没生效，所以这里不能因为找不到消息就返回
+      const payload = json as ChatRecalledPayload
+      const recipientId = payload.data?.recipientId
+      const messageId = payload.data?.id
+      if (recipientId && messageId) applyRecalled(recipientId, messageId, payload.data?.content)
     }
   }
 
@@ -562,9 +777,11 @@ export const useChatStore = defineStore('chat', () => {
     sessions,
     sessionsLoading,
     sessionsError,
+    groups,
     groupsError,
     conversations,
     recipientNames,
+    unreadCounts,
     currentRecipientId,
     historyLoaded,
     hasMoreHistory,
@@ -582,8 +799,11 @@ export const useChatStore = defineStore('chat', () => {
     openConversation,
     openUserConversation,
     openGroupConversation,
+    recallMessage,
     searchUser,
     createGroup,
+    renameGroup,
+    addGroupMember,
     loadGroupMembers,
     leaveGroup,
     sendText,

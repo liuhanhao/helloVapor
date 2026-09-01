@@ -878,6 +878,272 @@ async function main() {
   const dmHistFinal = await (await fetch(`${BASE}/chat/history?peer=${encodeURIComponent(meb.body.id)}`, { headers: { Authorization: `Bearer ${la.body.value}` } })).json()
   check('单聊消息仍进单聊历史', dmHistFinal.messages.some((m) => m.content === dmAfterGroup), JSON.stringify(dmHistFinal.messages.map((m) => m.content)))
 
+  // 19. 未读计数（未读 02）：服务端算未读 → 标记已读 → 位点持久化
+  // 用全新账号，避免与前面用例的消息混在一起算不清
+  const u1Account = `u1${stamp}@test.com`
+  const u2Account = `u2${stamp}@test.com`
+  const u3Account = `u3${stamp}@test.com`
+  const u4Account = `u4${stamp}@test.com`
+  await register('U1', u1Account)
+  await register('U2', u2Account)
+  await register('U3', u3Account)
+  await register('U4', u4Account)
+  const l1 = await login(u1Account, 'pass123')
+  const l2 = await login(u2Account, 'pass123')
+  const l3 = await login(u3Account, 'pass123')
+  const l4 = await login(u4Account, 'pass123')
+  const m1 = await me(l1.body.value)
+  const m2 = await me(l2.body.value)
+  const m3 = await me(l3.body.value)
+
+  const sessionsOf = async (token) =>
+    (await fetch(`${BASE}/chat/sessions`, { headers: { Authorization: `Bearer ${token}` } })).json()
+  // 取某个收件主体的未读数（单聊按对方 id，群聊按群 id）；会话不存在时为 undefined
+  const unreadOf = async (token, peerId) =>
+    (await sessionsOf(token)).find((s) => s.peer.userid === peerId)?.unreadCount
+
+  const u1 = await wsConnect(l1.body.value)
+  const u2 = await wsConnect(l2.body.value)
+  function sendTo(ws, me, peerId, type, content, msgType = 'text') {
+    ws.send(JSON.stringify({
+      type: 'chatMessage',
+      data: {
+        mine: { avatar: 'default', content, mine: true, userid: me.id, username: me.account, nickname: me.nickname, msgType },
+        to: { avatar: 'default', userid: peerId, username: '', nickname: '', type }
+      }
+    }))
+  }
+  // 发出并等消息落库（会话列表与未读都读库）
+  async function sendAndSettle(ws, me, peerId, type, content, msgType = 'text') {
+    sendTo(ws, me, peerId, type, content, msgType)
+    await sleep(300)
+  }
+  // 最近一条已入库消息的服务端 id（发送方收到的 ack 里带）
+  function lastAckedId(inbox) {
+    for (let i = inbox.length - 1; i >= 0; i -= 1) {
+      if (inbox[i].type === 'chatMessageAck' && inbox[i].data?.id) return inbox[i].data.id
+    }
+    return null
+  }
+
+  // 19.1 无位点时全部计入未读（决策记录第 2 条：能看到就等于可能未读）
+  await sendAndSettle(u1.ws, m1.body, m2.body.id, 'user', '未读-1：U1 发给 U2')
+  await sendAndSettle(u1.ws, m1.body, m2.body.id, 'user', '未读-2：U1 又发一条')
+  await sendAndSettle(u2.ws, m2.body, m1.body.id, 'user', '未读-3：U2 回一条')
+  const sessU1 = await sessionsOf(l1.body.value)
+  check('会话列表每个条目都带 unreadCount', sessU1.length > 0 && sessU1.every((s) => typeof s.unreadCount === 'number'), JSON.stringify(sessU1.map((s) => [s.kind, s.unreadCount])))
+  check('无位点时全部计入未读（U2 未读 = 2）', (await unreadOf(l2.body.value, m1.body.id)) === 2, `unread=${await unreadOf(l2.body.value, m1.body.id)}`)
+  check('自己发出的消息不计入未读（U1 未读 = 1，不是 3）', (await unreadOf(l1.body.value, m2.body.id)) === 1, `unread=${await unreadOf(l1.body.value, m2.body.id)}`)
+
+  // 19.2 标记已读：位点是服务端的，重新拉取（刷新页面）不会丢
+  const readRes = await api('POST', '/chat/read', l1.body.value, { recipientId: m2.body.id })
+  check(
+    '标记已读返回收件主体与位点（Unix 秒）',
+    readRes.status === 200 && readRes.body.recipientId === m2.body.id && typeof readRes.body.lastReadAt === 'number',
+    JSON.stringify(readRes.body)
+  )
+  check('标记已读后该会话未读清零', (await unreadOf(l1.body.value, m2.body.id)) === 0, `unread=${await unreadOf(l1.body.value, m2.body.id)}`)
+  check('重新拉取会话列表未读仍为 0（刷新后保持，服务端是权威来源）', (await unreadOf(l1.body.value, m2.body.id)) === 0, `unread=${await unreadOf(l1.body.value, m2.body.id)}`)
+  check('标记已读不影响对方的未读（U2 未读仍为 2）', (await unreadOf(l2.body.value, m1.body.id)) === 2, `unread=${await unreadOf(l2.body.value, m1.body.id)}`)
+
+  // 19.3 位点之后的新消息继续累加（重复标记是更新同一条位点）
+  await sendAndSettle(u2.ws, m2.body, m1.body.id, 'user', '未读-4：U1 已读之后到')
+  await sendAndSettle(u2.ws, m2.body, m1.body.id, 'user', '未读-5：再来一条')
+  check('位点之后的新消息继续计入未读（U1 未读 = 2）', (await unreadOf(l1.body.value, m2.body.id)) === 2, `unread=${await unreadOf(l1.body.value, m2.body.id)}`)
+  const reread = await api('POST', '/chat/read', l1.body.value, { recipientId: m2.body.id })
+  check('重复标记已读是更新同一条位点（不报错、位点前进）', reread.status === 200 && reread.body.lastReadAt > readRes.body.lastReadAt, JSON.stringify([readRes.body, reread.body]))
+
+  // 19.4 群消息同样计入未读，且与单聊位点互不串
+  const unreadGroupRes = await api('POST', '/chat/groups', l1.body.value, { name: '未读群', memberIds: [m2.body.id] })
+  const unreadGroupId = unreadGroupRes.body.id
+  check('建未读群成功（U1 + U2）', unreadGroupRes.status === 200 && unreadGroupRes.body.memberCount === 2, JSON.stringify(unreadGroupRes.body))
+  await sendAndSettle(u1.ws, m1.body, unreadGroupId, 'group', '未读群-1')
+  await sendAndSettle(u1.ws, m1.body, unreadGroupId, 'group', '未读群-2')
+  check('群消息计入未读（U2 群未读 = 2）', (await unreadOf(l2.body.value, unreadGroupId)) === 2, `unread=${await unreadOf(l2.body.value, unreadGroupId)}`)
+  check('自己发的群消息不计入未读（U1 群未读 = 0）', (await unreadOf(l1.body.value, unreadGroupId)) === 0, `unread=${await unreadOf(l1.body.value, unreadGroupId)}`)
+  check('群未读与单聊未读互不串（U2 单聊未读仍为 2）', (await unreadOf(l2.body.value, m1.body.id)) === 2, `unread=${await unreadOf(l2.body.value, m1.body.id)}`)
+  const groupRead = await api('POST', '/chat/read', l2.body.value, { recipientId: unreadGroupId })
+  check('给群标记已读后群未读清零', groupRead.status === 200 && (await unreadOf(l2.body.value, unreadGroupId)) === 0, JSON.stringify(groupRead.body))
+
+  // 19.5 入群之前的群消息不计入未读（看不到就不算未读）
+  const u3Join = await api('POST', `/chat/groups/${unreadGroupId}/members`, l1.body.value, { userId: m3.body.id })
+  check('把 U3 拉进未读群（成员数 3）', u3Join.status === 200 && u3Join.body.memberCount === 3, JSON.stringify(u3Join.body))
+  check('入群前的群消息不计入未读（U3 看不到该群会话）', !(await sessionsOf(l3.body.value)).some((s) => s.peer.userid === unreadGroupId), JSON.stringify((await sessionsOf(l3.body.value)).map((s) => [s.kind, s.peer.userid])))
+  await sendAndSettle(u1.ws, m1.body, unreadGroupId, 'group', '未读群-3：U3 入群之后到')
+  check('入群之后的新群消息计入未读（U3 群未读 = 1）', (await unreadOf(l3.body.value, unreadGroupId)) === 1, `unread=${await unreadOf(l3.body.value, unreadGroupId)}`)
+
+  // 19.6 非成员既不产生该群未读，也不能给它标记已读
+  check('非成员的会话列表不出现该群（U4）', !(await sessionsOf(l4.body.value)).some((s) => s.peer.userid === unreadGroupId), JSON.stringify((await sessionsOf(l4.body.value)).map((s) => [s.kind, s.peer.userid])))
+  const outsiderRead = await api('POST', '/chat/read', l4.body.value, { recipientId: unreadGroupId })
+  check('非成员给群标记已读被拒（403）', outsiderRead.status === 403 && /不是该群成员/.test(outsiderRead.body.reason ?? ''), `status=${outsiderRead.status} ${outsiderRead.body.reason ?? ''}`)
+
+  // 19.7 退群后不再产生该群未读
+  const u2Leave = await api('DELETE', `/chat/groups/${unreadGroupId}/members/${m2.body.id}`, l2.body.value)
+  check('U2 退群成功', u2Leave.status === 200, JSON.stringify(u2Leave.body))
+  await sendAndSettle(u1.ws, m1.body, unreadGroupId, 'group', '未读群-4：U2 退群之后到')
+  check('退群后该群不再出现在会话列表（不再产生未读）', !(await sessionsOf(l2.body.value)).some((s) => s.peer.userid === unreadGroupId), JSON.stringify((await sessionsOf(l2.body.value)).map((s) => [s.kind, s.peer.userid])))
+  const u2ReadAfterLeave = await api('POST', '/chat/read', l2.body.value, { recipientId: unreadGroupId })
+  check('退群后给该群标记已读被拒（403）', u2ReadAfterLeave.status === 403, `status=${u2ReadAfterLeave.status}`)
+
+  // 19.8 参数校验与鉴权
+  const readNoToken = await api('POST', '/chat/read', null, { recipientId: m2.body.id })
+  check('未携带 token 标记已读返回 401', readNoToken.status === 401, `status=${readNoToken.status}`)
+  const readSelf = await api('POST', '/chat/read', l1.body.value, { recipientId: m1.body.id })
+  check('给自己标记已读被拒（400）', readSelf.status === 400 && /不能标记/.test(readSelf.body.reason ?? ''), `status=${readSelf.status} ${readSelf.body.reason ?? ''}`)
+  const readNoId = await api('POST', '/chat/read', l1.body.value, {})
+  check('缺少 recipientId 返回 400', readNoId.status === 400 && /缺少/.test(readNoId.body.reason ?? ''), `status=${readNoId.status} ${readNoId.body.reason ?? ''}`)
+
+  // 20. 消息撤回（B2 02）：软删 → 不泄漏原文 → 实时通知对端 → 未读数不变
+  const recallContent = '撤回测试-这句原文不该被看到'
+  await sendAndSettle(u1.ws, m1.body, m2.body.id, 'user', recallContent)
+  const recallId = lastAckedId(u1.inbox)
+  check('发出一条待撤回的消息（拿到服务端消息 id）', !!recallId, String(recallId))
+
+  const unreadBeforeRecall = await unreadOf(l2.body.value, m1.body.id)
+  u2.inbox.length = 0
+
+  const recallRes = await api('POST', `/chat/messages/${recallId}/recall`, l1.body.value)
+  check('发送者可撤回自己的消息（返回 id 与位点）', recallRes.status === 200 && recallRes.body.id === recallId && typeof recallRes.body.recalledAt === 'number', JSON.stringify(recallRes.body))
+  await sleep(300)
+
+  const histU2 = await (await fetch(`${BASE}/chat/history?peer=${encodeURIComponent(m1.body.id)}`, { headers: { Authorization: `Bearer ${l2.body.value}` } })).json()
+  const recalledByU2 = histU2.messages.find((m) => m.id === recallId)
+  check('已撤回消息标记 recalled = true', recalledByU2?.recalled === true, JSON.stringify(recalledByU2))
+  check('已撤回消息不泄漏原文', !!recalledByU2 && !recalledByU2.content.includes(recallContent), String(recalledByU2?.content))
+  check('对方看到「昵称撤回了一条消息」', recalledByU2?.content === 'U1撤回了一条消息', String(recalledByU2?.content))
+
+  const histU1 = await (await fetch(`${BASE}/chat/history?peer=${encodeURIComponent(m2.body.id)}`, { headers: { Authorization: `Bearer ${l1.body.value}` } })).json()
+  const recalledByU1 = histU1.messages.find((m) => m.id === recallId)
+  check('撤回者自己看到「你撤回了一条消息」', recalledByU1?.content === '你撤回了一条消息', String(recalledByU1?.content))
+
+  check('撤回后未读数不变（撤回不改变消息条数）', (await unreadOf(l2.body.value, m1.body.id)) === unreadBeforeRecall, `${unreadBeforeRecall} -> ${await unreadOf(l2.body.value, m1.body.id)}`)
+
+  const sessU2Item = (await sessionsOf(l2.body.value)).find((s) => s.peer.userid === m1.body.id)
+  check('会话列表预览变成撤回提示', sessU2Item?.lastMessage.recalled === true && /撤回了一条消息/.test(sessU2Item.lastMessage.content ?? ''), JSON.stringify(sessU2Item?.lastMessage))
+
+  const recallFrame = u2.inbox.find((f) => f.type === 'chatMessageRecalled')
+  check('对端收到 chatMessageRecalled 帧（含收件主体与提示文案）', !!recallFrame && recallFrame.data?.id === recallId && recallFrame.data?.recipientType === 'user' && recallFrame.data?.recipientId === m1.body.id && /撤回了一条消息/.test(recallFrame.data?.content ?? ''), JSON.stringify(recallFrame))
+
+  const recallAgain = await api('POST', `/chat/messages/${recallId}/recall`, l1.body.value)
+  check('重复撤回幂等（第二次仍 200 且位点相同）', recallAgain.status === 200 && recallAgain.body.recalledAt === recallRes.body.recalledAt, JSON.stringify(recallAgain.body))
+
+  const recallByOther = await api('POST', `/chat/messages/${recallId}/recall`, l2.body.value)
+  check('撤回他人的消息被拒（403）', recallByOther.status === 403 && /只能撤回自己/.test(recallByOther.body.reason ?? ''), `status=${recallByOther.status} ${recallByOther.body.reason ?? ''}`)
+
+  const recallGhost = await api('POST', `/chat/messages/${crypto.randomUUID()}/recall`, l1.body.value)
+  check('撤回不存在的消息返回 404', recallGhost.status === 404, `status=${recallGhost.status}`)
+  const recallBadId = await api('POST', '/chat/messages/not-a-uuid/recall', l1.body.value)
+  check('消息 ID 格式非法返回 400', recallBadId.status === 400 && /格式不正确/.test(recallBadId.body.reason ?? ''), `status=${recallBadId.status} ${recallBadId.body.reason ?? ''}`)
+  const recallNoToken = await api('POST', `/chat/messages/${recallId}/recall`, null)
+  check('未携带 token 撤回返回 401', recallNoToken.status === 401, `status=${recallNoToken.status}`)
+
+  // 20.2 群消息撤回，以及退群后失去该群的消息处置权
+  const recallGroupRes = await api('POST', '/chat/groups', l1.body.value, { name: '撤回群', memberIds: [m3.body.id] })
+  const recallGroupId = recallGroupRes.body.id
+  check('建撤回群成功（U1 + U3）', recallGroupRes.status === 200 && recallGroupRes.body.memberCount === 2, JSON.stringify(recallGroupRes.body))
+
+  await sendAndSettle(u1.ws, m1.body, recallGroupId, 'group', '撤回群-这句原文不该被看到')
+  const groupMsgId = lastAckedId(u1.inbox)
+  const recallGroupMsg = await api('POST', `/chat/messages/${groupMsgId}/recall`, l1.body.value)
+  check('群消息可撤回（发送者仍是成员）', recallGroupMsg.status === 200, JSON.stringify(recallGroupMsg.body))
+  const recallGroupHist = await (await fetch(`${BASE}/chat/history?peer=${encodeURIComponent(recallGroupId)}`, { headers: { Authorization: `Bearer ${l3.body.value}` } })).json()
+  check('群友看到群消息已撤回且不泄漏原文', recallGroupHist.messages.some((m) => m.id === groupMsgId && m.recalled === true && !m.content.includes('撤回群-这句原文')), JSON.stringify(recallGroupHist.messages.map((m) => [m.id, m.recalled, m.content])))
+
+  // U3 在群里发一条后退群：撤回时先过发送者校验，再撞成员身份校验
+  const u3 = await wsConnect(l3.body.value)
+  // wsConnect 在 onopen 就 resolve，但服务端要异步校验完 token 才注册 onText——
+  // 连上就发会被静默丢弃，等一下再发
+  await sleep(500)
+  await sendAndSettle(u3.ws, m3.body, recallGroupId, 'group', '撤回群-U3 发的')
+  const u3MsgId = lastAckedId(u3.inbox)
+  check('U3 在群里发消息成功（拿到 id）', !!u3MsgId, JSON.stringify(u3.inbox.slice(-3)))
+  const u3Leave = await api('DELETE', `/chat/groups/${recallGroupId}/members/${m3.body.id}`, l3.body.value)
+  check('U3 退群成功', u3Leave.status === 200, JSON.stringify(u3Leave.body))
+  const recallAfterLeave = await api('POST', `/chat/messages/${u3MsgId}/recall`, l3.body.value)
+  check('退群后撤回群消息被拒（403）', recallAfterLeave.status === 403 && /不是该群成员/.test(recallAfterLeave.body.reason ?? ''), `status=${recallAfterLeave.status} ${recallAfterLeave.body.reason ?? ''}`)
+  u3.ws.close()
+
+  // 21. 消息搜索（B8 01）：按内容检索我可见的消息，可见性与 /chat/history 一致
+  const searchOf = async (token, q, extra = '') => {
+    const res = await fetch(`${BASE}/chat/messages/search?q=${encodeURIComponent(q)}${extra}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    return res.status === 200 ? await res.json() : { status: res.status }
+  }
+  const contentsOf = (res) => (res.messages ?? []).map((m) => m.content)
+
+  const sMine = '搜索标记-我发的甲'
+  const sPeer = '搜索标记-对方发的乙'
+  await sendAndSettle(u1.ws, m1.body, m2.body.id, 'user', sMine)
+  await sendAndSettle(u2.ws, m2.body, m1.body.id, 'user', sPeer)
+  await sleep(300)
+
+  const rMine = await searchOf(l1.body.value, '搜索标记')
+  check('按关键词搜到自己发出与收到的消息', contentsOf(rMine).includes(sMine) && contentsOf(rMine).includes(sPeer), JSON.stringify(contentsOf(rMine)))
+  check('搜索结果按时间倒序', (rMine.messages ?? []).length >= 2 && rMine.messages[0].createdAt >= rMine.messages[1].createdAt, JSON.stringify((rMine.messages ?? []).map((m) => m.createdAt)))
+
+  const peerItem = (rMine.messages ?? []).find((m) => m.content === sPeer)
+  check('结果带定位用的收件主体（单聊指向对方）', peerItem?.recipientType === 'user' && peerItem?.recipientId === m2.body.id, JSON.stringify(peerItem))
+  check('结果带收件主体的展示名', !!peerItem?.recipientName, String(peerItem?.recipientName))
+
+  // 与我无关的消息（U4 发给 U3）不该出现在我的搜索结果里
+  const m4 = await me(l4.body.value)
+  const sOther = '搜索标记-无关的丙'
+  const u4ws = await wsConnect(l4.body.value)
+  await sleep(500)
+  await sendAndSettle(u4ws.ws, m4.body, m3.body.id, 'user', sOther)
+  await sleep(300)
+  u4ws.ws.close()
+  check('搜不到与自己无关的消息', !contentsOf(await searchOf(l1.body.value, sOther)).includes(sOther), JSON.stringify(contentsOf(await searchOf(l1.body.value, sOther))))
+
+  // 已撤回的消息：软删的原文不能被搜出来（B8 与 B2 的关键交互）
+  const sRecall = '搜索标记-待撤回的丁'
+  await sendAndSettle(u1.ws, m1.body, m2.body.id, 'user', sRecall)
+  await sleep(300)
+  check('撤回前能搜到原文', contentsOf(await searchOf(l1.body.value, sRecall)).includes(sRecall), JSON.stringify(contentsOf(await searchOf(l1.body.value, sRecall))))
+  await api('POST', `/chat/messages/${lastAckedId(u1.inbox)}/recall`, l1.body.value)
+  await sleep(300)
+  check('撤回后搜不到原文（否则撤回形同虚设）', !contentsOf(await searchOf(l1.body.value, sRecall)).includes(sRecall), JSON.stringify(contentsOf(await searchOf(l1.body.value, sRecall))))
+
+  // 媒体消息的 content 是文件 URL，不该被搜出来
+  const sMedia = '/uploads/search-media-marker.jpg'
+  await sendAndSettle(u1.ws, m1.body, m2.body.id, 'user', sMedia, 'image')
+  await sleep(300)
+  check('搜不到媒体消息（content 是文件 URL）', !contentsOf(await searchOf(l1.body.value, 'search-media-marker')).includes(sMedia), JSON.stringify(contentsOf(await searchOf(l1.body.value, 'search-media-marker'))))
+
+  // 群：非成员搜不到、入群之前的群消息也搜不到（可见性与 /chat/history 一致）
+  const searchGroup = await api('POST', '/chat/groups', l1.body.value, { name: '搜索群' })
+  const searchGroupId = searchGroup.body.id
+  check('建搜索群成功（仅 U1）', searchGroup.status === 200 && searchGroup.body.memberCount === 1, JSON.stringify(searchGroup.body))
+  const sBeforeJoin = '搜索标记-入群前的戊'
+  await sendAndSettle(u1.ws, m1.body, searchGroupId, 'group', sBeforeJoin)
+  await sleep(300)
+  check('非成员搜不到群消息', !contentsOf(await searchOf(l3.body.value, sBeforeJoin)).includes(sBeforeJoin), JSON.stringify(contentsOf(await searchOf(l3.body.value, sBeforeJoin))))
+
+  const u3Rejoin = await api('POST', `/chat/groups/${searchGroupId}/members`, l1.body.value, { userId: m3.body.id })
+  check('把 U3 拉进搜索群', u3Rejoin.status === 200 && u3Rejoin.body.memberCount === 2, JSON.stringify(u3Rejoin.body))
+  const sAfterJoin = '搜索标记-入群后的己'
+  await sendAndSettle(u1.ws, m1.body, searchGroupId, 'group', sAfterJoin)
+  await sleep(300)
+  check('入群后能搜到入群之后的群消息', contentsOf(await searchOf(l3.body.value, sAfterJoin)).includes(sAfterJoin), JSON.stringify(contentsOf(await searchOf(l3.body.value, sAfterJoin))))
+  check('入群之前的群消息仍搜不到（入群时间过滤）', !contentsOf(await searchOf(l3.body.value, sBeforeJoin)).includes(sBeforeJoin), JSON.stringify(contentsOf(await searchOf(l3.body.value, sBeforeJoin))))
+  const groupItem = (await searchOf(l3.body.value, sAfterJoin)).messages?.find((m) => m.content === sAfterJoin)
+  check('群搜索结果指向该群', groupItem?.recipientType === 'group' && groupItem?.recipientId === searchGroupId && groupItem?.recipientName === '搜索群', JSON.stringify(groupItem))
+
+  // 参数校验与分页
+  const searchNoQ = await fetch(`${BASE}/chat/messages/search`, { headers: { Authorization: `Bearer ${l1.body.value}` } })
+  check('缺少关键词 q 返回 400', searchNoQ.status === 400, `status=${searchNoQ.status}`)
+  const searchNoToken = await fetch(`${BASE}/chat/messages/search?q=abc`)
+  check('未携带 token 搜索返回 401', searchNoToken.status === 401, `status=${searchNoToken.status}`)
+  const searchP1 = await searchOf(l1.body.value, '搜索标记', '&limit=2&offset=0')
+  const searchP2 = await searchOf(l1.body.value, '搜索标记', '&limit=2&offset=2')
+  check('limit 生效且 hasMore 是布尔', (searchP1.messages ?? []).length <= 2 && typeof searchP1.hasMore === 'boolean', JSON.stringify([searchP1.messages?.length, searchP1.hasMore]))
+  check('offset 生效（第二页与第一页不同）', JSON.stringify(contentsOf(searchP1)) !== JSON.stringify(contentsOf(searchP2)), JSON.stringify([contentsOf(searchP1), contentsOf(searchP2)]))
+
+  u1.ws.close()
+  u2.ws.close()
+  await sleep(300)
+
   alice.ws.close()
   bob.ws.close()
   carol.ws.close()

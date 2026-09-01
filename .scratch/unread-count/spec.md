@@ -1,6 +1,6 @@
 # 未读计数
 
-Status: ready-for-agent（决策已敲定并记入 ADR-0003；实施 tickets 见 `issues/`，从 01 开始按阻塞边顺序认领）
+Status: resolved（2026-09-01：服务端位点 / 无位点全量计入 / 群消息计入三项决策均已落地；01 / 02 / 03 全部 resolved；服务端联调 176 PASS / 0 FAIL，前端 npm run build 与浏览器冒烟全绿。详见 `issues/03-unread-badge-ui.md` 的冒烟证据）
 
 ## 问题陈述（Problem Statement）
 

@@ -60,6 +60,21 @@ func routes(_ app: Application) throws {
         try await ChatHistoryController.history(req: req)
     }
 
+    // 标记已读（未读计数 02）：写入我在该收件主体下的已读位点，会话列表据此算未读数
+    tokenProtected.post("chat", "read") { req async throws -> MarkReadResponseDTO in
+        try await ChatHistoryController.markRead(req: req)
+    }
+
+    // 消息搜索（B8 01）：按关键词检索我可见的消息，可见性规则与 /chat/history 一致
+    tokenProtected.get("chat", "messages", "search") { req async throws -> MessageSearchResponseDTO in
+      try await ChatHistoryController.search(req: req)
+    }
+
+    // 撤回消息（B2 02）：只有发送者可撤回，撤回后经 WS 实时通知对端
+    tokenProtected.post("chat", "messages", ":id", "recall") { req async throws -> RecallResponseDTO in
+        try await MessageRecallController.recall(req: req)
+    }
+
     // 用户查询（issue 05）：按账号或用户 ID 查询用户的公开身份，用于发起新会话。
     // 返回 User.Public（id / 头像 / 昵称 / 账号），不含密码散列等敏感字段。
     tokenProtected.get("chat", "users") { req async throws -> [User.Public] in

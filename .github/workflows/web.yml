@@ -1,0 +1,35 @@
+name: Web
+
+# 前端构建与单测：纯 Node，无 Swift 依赖，走 Linux runner。
+# 与 e2e.yml 分开是为了按路径触发——服务端联调要 macOS runner（分钟数是 Linux 的 10 倍），
+# 纯前端改动不该烧那份配额。
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'web/**'
+      - '.github/workflows/web.yml'
+  pull_request:
+    paths:
+      - 'web/**'
+      - '.github/workflows/web.yml'
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - run: npm ci
+      # build 内含 vue-tsc --noEmit 的类型检查
+      - run: npm run build
+      - run: npm test

@@ -134,7 +134,13 @@ final class ChatMessage: Model, Content {
 
     @Field(key: "to_id")
     var toId: String
-    
+
+    // 撤回时间（Unix 秒，含小数部分）；nil = 未撤回。
+    // 撤回是软删：消息行留着，但对外不再返回原文（B2 决策记录第 2 条）。
+    // 用时间戳而非 Bool——能支撑「撤回发生在多久之后」，成本为零；单位与 created_at 一致
+    @OptionalField(key: "recalled_at")
+    var recalledAt: Double?
+
     // 创建一个空实现用来映射。
     init() { }
 
@@ -184,6 +190,19 @@ struct AddMessageRecipient: AsyncMigration {
         // 同上：DROP COLUMN 一次也只能删一列
         try await database.schema("message").deleteField("to_type").update()
         try await database.schema("message").deleteField("to_id").update()
+    }
+}
+
+// message 表新增撤回时间（B2 撤回）：nil 表示未撤回。
+// SQLite 的 ALTER TABLE 一次只能加一列——即便这里只有一列，也保持
+// prepare / revert 各一条 .update() 的形状，别图省事合并（群聊 01 踩过）
+struct AddMessageRecalledAt: AsyncMigration {
+    func prepare(on database: Database) async throws {
+        try await database.schema("message").field("recalled_at", .double).update()
+    }
+
+    func revert(on database: Database) async throws {
+        try await database.schema("message").deleteField("recalled_at").update()
     }
 }
 
