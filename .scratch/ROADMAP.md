@@ -24,7 +24,7 @@
   4. **锁的选型**：`NSLock` 被标了 `noasync`，在 async 上下文调用会告警，封装成同步方法也躲不掉；actor 要 `await`，会切离 event loop；`Synchronization.Mutex` 要 macOS 15+（本工程声明的是 12）。当前用 pthread 互斥锁。真要外置连接表时改用 NIO 的 `NIOLockedValueBox`（需给 `Package.swift` 加 `swift-nio` 显式依赖；`WebSocket` 本身是 `Sendable`，可以直接装）。
   5. **Fluent 查询**：`\.$value == x` 写在 guard 链里推断不出 Root，要写成 `\UserToken.$value`，且文件需 `import Fluent`。
 - **B5 部分完成**：`web/e2e-check.mjs` 接入 `npm run e2e`（默认打 8080，可用 `BASE` 覆盖）。CI 集成与前端单测仍缺。
-- 测试现状：`npm run e2e` 77 项服务端联调断言全绿（8080 实测）；UI 仍靠手工冒烟。
+- 测试现状：`npm run e2e` **151 项**服务端联调断言全绿（8080 实测：基线 77 + 02 号 ticket 的 33 项群管理 + 03 号 ticket 的 41 项群聊）；UI 仍靠手工冒烟。
 
 ## 本次规划时发现的两件事
 
@@ -74,12 +74,21 @@
 
 ### P2 — 架构扩展
 
-**C1 · 群聊** — ✅ 决策已敲定，tickets 已就绪（Status: ready-for-agent）
-- spec：`.scratch/group-chat/spec.md`（含「决策记录」，6 个开放问题全部拍板）
-- tickets：`issues/01` 数据模型与迁移 → `issues/02` 建群与成员管理 → `issues/03` 群消息端到端 → `issues/04` Web 端界面（按阻塞边顺序认领）
+**C1 · 群聊** — ✅ **已交付并验证完毕**（4 个 tickets 01~04 全部 resolved）
+- spec 与 issue 文件已按「执行完即清理」原则删除（结论全部保留在本节；需要原文时 `git log -- .scratch/group-chat/` 可取回）
 - 词汇（群 / 会话 / 单聊 / 成员 / 收件主体）**已写入 `CONTEXT.md`**
-- 已定：**建群即入群**（不做邀请确认）、**上限 200 人**、**仅创建者可改群名·任何成员可拉人·只能退自己**、**退群即失去该群访问权且不留系统消息**、**复用 message 表加 `to_type`/`to_id`**、**`type` 字段保留但不依赖**
-- Blocked by：B5 收尾（回归网）；其余前置（A1~A4）已 resolved
+- 已定：**建群即入群**（不做邀请确认）、**上限 200 人**、**仅创建者可改群名·任何成员可拉人·只能退自己**、**退群即失去该群访问权且不留系统消息**、**复用 message 表加 `to_type`/`to_id`**、**`type` 字段保留但不依赖**、**成员能且只能看到入群之后的群消息**
+- 交付面：`groups` / `group_members` 两表 + 六个群管理接口 + WS 群消息扇出 + `chatMessageError` 帧 + 会话/历史按收件主体泛化 + Web 端建群/群信息/退群界面
+- **未做**（规格 Out of Scope，接口已就绪待接）：改群名、拉人入群的前端入口；群主转让、踢人、禁言、@提及、群公告、群解散、群聊未读计数、群聊离线推送
+- **已知上限（本期接受）**：① `GET /chat/sessions` 先全量取回我的消息再在内存里按 `joined_at` 过滤（沿用单聊原有的内存去重做法），群消息量涨上来后要改成 SQL 侧带条件；② owner 退群未做特殊处理——不转让、不解散，群会变成无主状态（扇出按成员表走，不受影响），要处理得先定「无主群归谁」的产品语义
+
+**动群聊相关代码前必读**——下面每条都是真踩过的：
+1. **`Group` 与 Fluent 的 `@Group` 属性包装器重名**，模块里一旦有 `Group` 类就会被遮蔽，编译期报 `unknown attribute`。`ChatMessage` 里已加 `typealias GroupField<Value: Fields> = GroupProperty<ChatMessage, Value>`，`mine` / `to` 改用 `@GroupField(key:)`。**在 `ChatMessage` 里加属性时不要用 `@Group`。**
+2. **SQLite 的 `ALTER TABLE` 一次只能加/删一列**：`.field("to_type").field("to_id").update()` 会生成 `ADD COLUMN ... , ADD COLUMN ...` 并报 `near ",": syntax error`。`prepare` 与 `revert` 都要拆成两条 `.update()`。
+3. **WS 协议只加了一个字段** `data.to.type`（`user` / `group`），缺省按 `user`——iOS 旧格式消息不带该字段，行为完全不变。群聊时 `to.userid` 位置填群 id，不新增字段。
+4. **前端状态里的 `peerXxx` 已全部改名为 `recipientXxx`**（`recipientNames` / `currentRecipientId`）；但会话列表项的 `peer` 字段名保留——那是 `/chat/sessions` 的 JSON 字段名，改它要加一层映射。**判定是不是群一律走 `chat.isGroup(id)`，不要在视图里另猜。**
+5. **`GET /chat/sessions` 只含有过消息的会话**，`GET /chat/groups` 的结果必须在它之后合并进列表（顺序不能倒），否则刚建好还没发言的群刷新就消失了。
+6. `GroupMember.requireMembership` / `counts` 是「我是不是这个群的成员」的唯一入口（WS、查历史、会话列表三处共用）；不要各写一遍，容易漏。
 
 **C2 · 生产化与部署**
 - 范围：SQLite → Postgres、HTTPS、docker-compose 配置、日志与配置外置、多实例下的连接表外置（`A2` 已留好 seam）。
@@ -89,7 +98,7 @@
 ## 建议批次
 
 1. **批次一（安全与卫生）** ✅ ~~A1 → A2 → A3 → A4~~ 全部完成
-2. **批次二（回归网 + 群聊）**：**B5 收尾 → 群聊 01 → 02 → 03 → 04**
+2. **批次二（回归网 + 群聊）** ✅ ~~群聊 01 → 02 → 03 → 04~~ 全部完成（B5 仅完成 `npm run e2e` 部分，CI 集成与前端单测仍缺）
 3. **批次三（补齐与生产化）**：**B1 → B2 → B3 → B0 → B4 → C2 生产化**
 
 **为什么把群聊提到体验补齐（B1/B2/B3）前面**：群聊的 tickets 已经描述完整、阻塞边清晰，可以直接认领开工；而 B1（未读）还卡在一个产品决策上（服务端已读位点 vs 前端本地计数）。先把能确定推进的推完，决策等它自然成熟。B5 收尾放最前，是因为群聊要同时动协议、数据模型和前端状态组织方式——没有回归网等于蒙眼改，而它只要半天到一天。
