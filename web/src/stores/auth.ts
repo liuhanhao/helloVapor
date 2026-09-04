@@ -48,6 +48,13 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   // 退出登录：清除本地凭证
+  // 改完资料后把服务端返回的最新身份同步进来：顶栏昵称与头像都读它。
+  // 不重新登录——token 没变，没必要走一遍登录流程
+  function applyUser(me: UserInfo) {
+    user.value = me
+    persist()
+  }
+
   function logout() {
     token.value = null
     user.value = null
@@ -55,5 +62,5 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem(USER_KEY)
   }
 
-  return { token, user, isLoggedIn, login, register, logout }
+  return { token, user, isLoggedIn, login, register, applyUser, logout }
 })

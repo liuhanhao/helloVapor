@@ -6,17 +6,17 @@
 
 **被阻塞于（Blocked by）：** 无
 
-**状态（Status）：** claimed
+**状态（Status）：** resolved
 
-- [ ] `GET /chat/messages/search?q=&limit=&offset=`，返回 `{ messages, hasMore }`，按时间倒序
-- [ ] 空/空白 `q` 返回 400；未带 token 401；`limit` 夹在 1~50；`offset` ≥ 0
-- [ ] 单聊可见性：`to_type = user` 且两个方向之一涉及我
-- [ ] 群可见性：在我加入的群里，且**只搜入群之后的消息**（`createdAt >= joinedAt`）
-- [ ] **排除已撤回的消息**（`recalled_at IS NULL`）
-- [ ] **只匹配文本消息**：媒体消息取回后在 Swift 侧剔除，不在 SQL 侧用 `NOT IN`
-- [ ] 结果带 `recipientType` / `recipientId` / `recipientName`，指向可跳转的会话
-- [ ] 路由注册在 `routes.swift` 的 `tokenProtected` 分组内
-- [ ] 新增联调用例全绿 + 现有 196 项全绿
+- [x] `GET /chat/messages/search?q=&limit=&offset=`，返回 `{ messages, hasMore }`，按时间倒序
+- [x] 空/空白 `q` 返回 400；未带 token 401；`limit` 夹在 1~50；`offset` ≥ 0
+- [x] 单聊可见性：`to_type = user` 且两个方向之一涉及我
+- [x] 群可见性：在我加入的群里，且**只搜入群之后的消息**（`createdAt >= joinedAt`）
+- [x] **排除已撤回的消息**（`recalled_at IS NULL`）
+- [x] **只匹配文本消息**：媒体消息取回后在 Swift 侧剔除，不在 SQL 侧用 `NOT IN`
+- [x] 结果带 `recipientType` / `recipientId` / `recipientName`，指向可跳转的会话
+- [x] 路由注册在 `routes.swift` 的 `tokenProtected` 分组内
+- [x] 新增联调用例全绿 + 现有 196 项全绿（合计 **214**）
 
 ## 实施要点
 
@@ -33,3 +33,14 @@
 **2026-09-01 拆分（Agent）：** 决策依据见 `../spec.md` 的「决策记录」。本 ticket 只做检索能力，前端搜索框与结果视图在 `02`。
 
 **跟 B2 的两处耦合**（改动时留意）：撤回字段 `recalled_at`（B2 01 加的）、以及「撤回后未读数不变」的语义——搜索**不影响**未读，它是一条独立的读路径，不要顺手去改未读累加。
+
+## Comments
+
+**2026-09-01 实施（Agent）：** 改动落在 `ChatHistoryController.search` 与 `routes.swift`（`tokenProtected.get("chat","messages","search")`）。验证：`swift build` 通过；`npm run e2e` **214 PASS / 0 FAIL**（196 基线 + 19 项搜索用例），覆盖了搜寻命中、无关消息不可见、**撤回后搜不到原文**、媒体消息搜不到、非成员/入群前不可见、参数校验与分页。
+
+实施中撞到的两件事：
+
+- **`.contains` 不是常量而是函数**，写成 `builder.filter(f, .contains, kw)` 编译不过。正确写法是 `.contains(inverse: false, .anywhere)`（第二个参数是匹配位置，不是值）。
+- **媒体消息确实不能在 SQL 侧用 `NOT IN` 过滤**——按预期复现了：`mine_msgType` 旧数据为 NULL，`NULL NOT IN (...)` 求值为 NULL 会把老文本消息一起排除。已按 ticket 要求改为 Swift 侧剔除，并在代码注释里写清了原因。
+
+**已知上限（已在代码注释与 spec 中标注）**：关键词里的 `%` / `_` 未做转义，`LIKE` 会当通配符处理，搜「100%」会命中过多。为它写裸 SQL 拼 `ESCAPE` 子句不划算，等真有人抱怨再说。

@@ -41,6 +41,9 @@ const PAGE_SIZE = 20
 // 会话打开期间的标记已读合批窗口：一条消息一个请求太浪费，但打开会话那次不等窗口
 const READ_THROTTLE_MS = 1000
 
+// 搜索输入的防抖窗口：每次按键一个请求太吵
+const SEARCH_DEBOUNCE_MS = 300
+
 // 媒体消息类型对应的展示标签（错误提示用），与服务端 UploadRules 的规则一一对应
 const MEDIA_LABELS: Record<'image' | 'audio' | 'video', string> = {
   image: '图片',
@@ -135,6 +138,7 @@ export const useChatStore = defineStore('chat', () => {
     recipientKinds.value = {}
     unreadCounts.value = {}
     clearPendingRead()
+    clearSearch()
     groups.value = {}
     historyLoaded.value = {}
     hasMoreHistory.value = {}
@@ -211,6 +215,8 @@ export const useChatStore = defineStore('chat', () => {
       void searchMessages(keyword)
       return
     }
+    // 防抖窗口内就先显示为「搜索中」，否则结果区会闪一下「没有找到相关消息」
+    searching.value = true
     searchTimer = window.setTimeout(() => void searchMessages(keyword), SEARCH_DEBOUNCE_MS)
   }
 
@@ -423,6 +429,20 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
+  // 换群头像（仅创建者）：与改名走同一条 PATCH，服务端本来就能同时收两个字段
+  async function changeGroupAvatar(groupId: string, avatar: string): Promise<GroupSummary> {
+    const token = auth.token
+    if (!token) throw new Error('尚未登录')
+    try {
+      const group = await updateGroupApi(token, groupId, { avatar })
+      applyGroupSummary(group)
+      return group
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 401) auth.logout()
+      throw e
+    }
+  }
+
   // 拉人入群（任何成员可拉，被拉入无需本人同意）：成员数取服务端返回值，不本地 +1
   async function addGroupMember(groupId: string, userId: string): Promise<GroupSummary> {
     const token = auth.token
@@ -499,6 +519,7 @@ export const useChatStore = defineStore('chat', () => {
       timestamp: m.createdAt,
       acked: true,
       senderNickname: m.senderNickname,
+      senderAvatar: m.senderAvatar,
       recalled: m.recalled
     }
   }
@@ -728,7 +749,10 @@ export const useChatStore = defineStore('chat', () => {
         timestamp,
         acked: true,
         // 群聊气泡靠它显示是谁说的；单聊不需要
-        senderNickname: group ? mine.nickname || mine.username || recipientId : undefined
+        senderNickname: group ? mine.nickname || mine.username || recipientId : undefined,
+        // 实时消息只能拿到发送时的头像快照：服务端此刻还没回查 users 表。
+        // 与「改头像不实时通知」是同一个上限——下次拉取历史就会看到最新头像
+        senderAvatar: mine.avatar
       })
       bumpSession(recipientId, mine.content, mine.msgType || 'text', false, timestamp)
       // 未读：正在看的会话直接标记已读（合批发一次），其它会话本地 +1 是乐观更新，
@@ -788,6 +812,10 @@ export const useChatStore = defineStore('chat', () => {
     historyLoading,
     historyError,
     connected,
+    searchKeyword,
+    searchResults,
+    searching,
+    searchError,
     isGroup,
     connect,
     disconnect,
@@ -796,6 +824,9 @@ export const useChatStore = defineStore('chat', () => {
     loadGroups,
     loadHistory,
     loadOlder,
+    searchMessages,
+    searchSoon,
+    clearSearch,
     openConversation,
     openUserConversation,
     openGroupConversation,
@@ -803,6 +834,7 @@ export const useChatStore = defineStore('chat', () => {
     searchUser,
     createGroup,
     renameGroup,
+    changeGroupAvatar,
     addGroupMember,
     loadGroupMembers,
     leaveGroup,

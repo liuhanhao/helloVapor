@@ -1,18 +1,89 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
+import Avatar from './Avatar.vue'
+import { compressAvatar } from '../avatar'
+import { describeError, updateMe, uploadMedia } from '../api'
+import { useAuthStore } from '../stores/auth'
 import { writeClipboard } from '../clipboard'
 
-// 联系人 / 群成员的资料卡。数据来自会话列表与群成员列表（两者都已带
-// userid / 账号 / 昵称），不需要额外发请求。
-// 头像沿用列表里的首字母色块——User.avatar 目前只是 'default' 字符串，没有真实图片。
+// 资料卡。数据来自会话列表与群成员列表（两者都已带
+// userid / 账号 / 昵称 / 头像），不需要额外发请求。
+// 看别人时只读；看自己（editable）时可以换头像与改昵称
 const props = defineProps<{
   userid: string
   nickname: string
   // 账号
   username: string
+  // 头像 URL；缺省或为 'default' 时由 Avatar 回退首字母
+  avatar?: string
+  // 看自己：开启换头像与改昵称。看联系人/群成员时不传，保持只读
+  editable?: boolean
 }>()
 
-const emit = defineEmits<{ close: [] }>()
+const emit = defineEmits<{ close: []; updated: [] }>()
+
+const auth = useAuthStore()
+
+// 编辑态（仅 editable 时用到）
+const shownAvatar = ref(props.avatar)
+const draftName = ref(props.nickname)
+const saving = ref(false)
+const uploading = ref(false)
+const editError = ref('')
+
+// 外部数据变了要跟上（换会话、重新打开资料卡）
+watch(
+  () => props.avatar,
+  (v) => {
+    shownAvatar.value = v
+  }
+)
+watch(
+  () => props.nickname,
+  (v) => {
+    draftName.value = v
+  }
+)
+
+async function pickAvatar(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  // 清掉 value，否则选同一个文件不会再触发 change
+  input.value = ''
+  if (!file || uploading.value) return
+
+  uploading.value = true
+  editError.value = ''
+  try {
+    const compressed = await compressAvatar(file)
+    const { url } = await uploadMedia(auth.token!, 'avatar', compressed)
+    // 换头像立即落库，不等「保存」：选完图就能看到效果，昵称另走保存
+    const me = await updateMe(auth.token!, { avatar: url })
+    auth.applyUser(me)
+    shownAvatar.value = me.avatar
+    emit('updated')
+  } catch (e) {
+    editError.value = describeError(e, '头像上传失败，请稍后重试')
+  } finally {
+    uploading.value = false
+  }
+}
+
+async function saveNickname() {
+  const name = draftName.value.trim()
+  if (!name || saving.value || name === props.nickname) return
+  saving.value = true
+  editError.value = ''
+  try {
+    const me = await updateMe(auth.token!, { nickname: name })
+    auth.applyUser(me)
+    emit('updated')
+  } catch (e) {
+    editError.value = describeError(e, '保存失败，请稍后重试')
+  } finally {
+    saving.value = false
+  }
+}
 
 const copyNotice = ref('')
 const copyNoticeFailed = ref(false)
@@ -38,12 +109,30 @@ async function copyUserId() {
   <!-- z-index 高于群信息弹窗：资料卡会从群成员列表里叠上来 -->
   <div class="mask" @click.self="emit('close')">
     <div class="dialog">
-      <h3>资料</h3>
+      <h3>{{ editable ? '我的资料' : '资料' }}</h3>
 
       <div class="identity">
-        <span class="avatar">{{ (nickname || userid).slice(0, 1).toUpperCase() }}</span>
-        <span class="nickname">{{ nickname }}</span>
+        <Avatar :src="shownAvatar" :name="nickname || userid" :size="44" />
+        <input
+          v-if="editable"
+          v-model="draftName"
+          class="name-input"
+          maxlength="20"
+          @keyup.enter="saveNickname"
+        />
+        <span v-else class="nickname">{{ nickname }}</span>
       </div>
+
+      <!-- 换头像：选完即上传落库，不等「保存」——选完图就该立刻看到效果 -->
+      <label v-if="editable" class="pick-avatar">
+        {{ uploading ? '头像上传中…' : '换头像' }}
+        <input
+          type="file"
+          accept="image/png,image/jpeg,image/webp,image/gif"
+          hidden
+          @change="pickAvatar"
+        />
+      </label>
 
       <div class="row">
         <span class="label">账号</span>
@@ -54,11 +143,20 @@ async function copyUserId() {
         <span class="value id" title="选中可手动复制">{{ userid }}</span>
       </div>
 
+      <p v-if="editError" class="error">{{ editError }}</p>
       <p v-if="copyNotice" :class="['copy-notice', { failed: copyNoticeFailed }]">
         {{ copyNotice }}
       </p>
 
       <div class="actions">
+        <button
+          v-if="editable"
+          class="primary"
+          :disabled="saving"
+          @click="saveNickname"
+        >
+          {{ saving ? '保存中…' : '保存昵称' }}
+        </button>
         <button class="ghost" @click="emit('close')">关闭</button>
         <button class="primary" @click="copyUserId">复制用户 ID</button>
       </div>
@@ -102,18 +200,41 @@ h3 {
   gap: 10px;
 }
 
-.avatar {
-  width: 44px;
-  height: 44px;
-  flex-shrink: 0;
-  border-radius: 50%;
-  background: #165dff;
-  color: #fff;
-  font-size: 18px;
+/* 头像样式统一在 Avatar.vue 里 */
+
+/* 改昵称：内联编辑，两个字段的事不值得套一层弹窗 */
+.name-input {
+  min-width: 0;
+  flex: 1;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 16px;
   font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  font-family: inherit;
+  color: #1d2129;
+  outline: none;
+}
+
+.name-input:focus {
+  border-color: #165dff;
+}
+
+.pick-avatar {
+  align-self: flex-start;
+  border: 1px solid #165dff;
+  color: #165dff;
+  border-radius: 6px;
+  padding: 5px 12px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.error {
+  margin: 0;
+  font-size: 12px;
+  color: #d4380d;
+  word-break: break-all;
 }
 
 .nickname {

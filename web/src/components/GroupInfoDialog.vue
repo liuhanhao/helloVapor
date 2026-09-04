@@ -4,6 +4,9 @@ import { describeError } from '../api'
 import { useChatStore } from '../stores/chat'
 import { useAuthStore } from '../stores/auth'
 import type { GroupMember, UserInfo } from '../types'
+import { compressAvatar } from '../avatar'
+import { uploadMedia } from '../api'
+import Avatar from './Avatar.vue'
 import ProfileCard from './ProfileCard.vue'
 
 // left：退群成功（本地会话已由 store 移除），由使用方关闭弹窗
@@ -20,7 +23,12 @@ const confirming = ref(false)
 const leaving = ref(false)
 const leaveError = ref('')
 // 点成员条目打开的资料卡（数据已在成员列表里，不额外发请求）
-const memberProfile = ref<{ userid: string; nickname: string; username: string } | null>(null)
+const memberProfile = ref<{
+  userid: string
+  nickname: string
+  username: string
+  avatar: string
+} | null>(null)
 
 const groupName = computed(() => chat.recipientNames[props.groupId] ?? props.groupId)
 // 仅创建者可改群信息（服务端已定死）。判定直接比 ownerId——本功能不引入「管理员/群主」角色
@@ -55,7 +63,8 @@ function openProfile(m: GroupMember) {
   memberProfile.value = {
     userid: m.userid,
     nickname: m.nickname || m.username || m.userid,
-    username: m.username
+    username: m.username,
+    avatar: m.avatar
   }
 }
 
@@ -104,6 +113,31 @@ async function searchInvitee() {
   }
 }
 
+const avatarUploading = ref(false)
+// 群头像：群表里就有，非创建者也能看到，只是不能改
+const groupAvatar = computed(() => chat.groups[props.groupId]?.avatar)
+
+// 换群头像（仅创建者）：与改群名走同一条 PATCH，服务端两个字段都能收
+async function pickGroupAvatar(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  // 清掉 value，否则选同一个文件不会再触发 change
+  input.value = ''
+  if (!file || avatarUploading.value) return
+
+  avatarUploading.value = true
+  inviteError.value = ''
+  try {
+    const compressed = await compressAvatar(file)
+    const { url } = await uploadMedia(auth.token!, 'avatar', compressed)
+    await chat.changeGroupAvatar(props.groupId, url)
+  } catch (e) {
+    inviteError.value = describeError(e, '群头像上传失败，请稍后重试')
+  } finally {
+    avatarUploading.value = false
+  }
+}
+
 async function invite(u: UserInfo) {
   if (inviting.value) return
   inviting.value = true
@@ -147,6 +181,20 @@ async function leave() {
       <h3>群信息</h3>
 
       <div class="row">
+        <span class="label">群头像</span>
+        <Avatar :src="groupAvatar" :name="groupName" :size="40" group />
+        <label v-if="isOwner" class="link">
+          {{ avatarUploading ? '上传中…' : '换群头像' }}
+          <input
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/gif"
+            hidden
+            @change="pickGroupAvatar"
+          />
+        </label>
+      </div>
+
+      <div class="row">
         <span class="label">群名称</span>
         <template v-if="editing">
           <input
@@ -175,7 +223,7 @@ async function leave() {
       <p v-else-if="loadError" class="error">{{ loadError }}</p>
       <ul v-else class="members">
         <li v-for="m in members" :key="m.userid" title="查看资料" @click="openProfile(m)">
-          <span class="avatar">{{ (m.nickname || m.userid).slice(0, 1).toUpperCase() }}</span>
+          <Avatar :src="m.avatar" :name="m.nickname || m.userid" :size="32" />
           <span class="who">
             {{ m.nickname }}
             <span v-if="m.userid === auth.user?.id" class="self-tag">我</span>
@@ -235,6 +283,7 @@ async function leave() {
       :userid="memberProfile.userid"
       :nickname="memberProfile.nickname"
       :username="memberProfile.username"
+      :avatar="memberProfile.avatar"
       @close="memberProfile = null"
     />
   </div>
@@ -420,19 +469,7 @@ h3 {
   border-bottom: none;
 }
 
-.avatar {
-  width: 28px;
-  height: 28px;
-  flex-shrink: 0;
-  border-radius: 50%;
-  background: #165dff;
-  color: #fff;
-  font-size: 13px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+/* 头像样式统一在 Avatar.vue 里 */
 
 .who {
   min-width: 0;

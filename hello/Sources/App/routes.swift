@@ -50,6 +50,11 @@ func routes(_ app: Application) throws {
         try req.auth.require(User.self).toPublic()
     }
 
+    // 改自己的昵称与头像（B3 01）：身份只从鉴权结果取，没有改别人的入参
+    tokenProtected.on(.PATCH, "chat", "me") { req async throws -> User.Public in
+        try await UserProfileController.updateMe(req: req)
+    }
+
     // 会话列表：按联系人分组返回对方身份与最后一条消息，按最后消息时间倒序
     tokenProtected.get("chat", "sessions") { req async throws -> [SessionSummaryDTO] in
         try await ChatHistoryController.sessions(req: req)

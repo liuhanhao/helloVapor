@@ -42,6 +42,13 @@ enum UploadRules {
         maxBytes: 100 * 1024 * 1024,
         label: "视频"
     )
+    // 头像（B3）：上限远小于图片——头像会在会话列表里一次渲染几十个，
+    // 且服务端没有图像处理库，缩放只能靠前端；2MB 是兜底
+    static let avatar = UploadRule(
+        extensions: ["jpg", "jpeg", "png", "gif", "webp"],
+        maxBytes: 2 * 1024 * 1024,
+        label: "头像"
+    )
 
     // 请求体收集上限：取各类型上限中最大者（当前为视频 100MB）
     static var largestMaxBytes: Int {
@@ -53,6 +60,7 @@ enum UploadRules {
         case "image": return image
         case "audio": return audio
         case "video": return video
+        case "avatar": return avatar
         default: return nil
         }
     }

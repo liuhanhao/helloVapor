@@ -1140,6 +1140,54 @@ async function main() {
   check('limit 生效且 hasMore 是布尔', (searchP1.messages ?? []).length <= 2 && typeof searchP1.hasMore === 'boolean', JSON.stringify([searchP1.messages?.length, searchP1.hasMore]))
   check('offset 生效（第二页与第一页不同）', JSON.stringify(contentsOf(searchP1)) !== JSON.stringify(contentsOf(searchP2)), JSON.stringify([contentsOf(searchP1), contentsOf(searchP2)]))
 
+  // 22. 头像上传与个人资料（B3 01）
+  // 顺序要紧：先在「旧头像」状态下发一条消息，改完头像才能验证气泡跟着变
+  await sendAndSettle(u1.ws, m1.body, m2.body.id, 'user', '改头像前的消息')
+  await sleep(300)
+  const histBefore = await (await fetch(`${BASE}/chat/history?peer=${encodeURIComponent(m1.body.id)}`, { headers: { Authorization: `Bearer ${l2.body.value}` } })).json()
+  const oldAvatar = (await api('GET', '/chat/me', l1.body.value)).body.avatar
+  const msgBefore = histBefore.messages.filter((m) => m.senderUserId === m1.body.id).pop()
+  check('改头像前气泡用旧头像', !!msgBefore && msgBefore.senderAvatar === oldAvatar, String(msgBefore?.senderAvatar))
+
+  const avatarUp = await upload(l1.body.value, 'avatar', 'me.png', pngBytes, 'image/png')
+  const avatarUrl = avatarUp.body.url
+  check('头像上传成功（msgType=avatar，返回站内 URL）', avatarUp.status === 200 && typeof avatarUrl === 'string' && avatarUrl.startsWith('/uploads/'), JSON.stringify(avatarUp))
+  const avatarBadExt = await upload(l1.body.value, 'avatar', 'me.txt', Buffer.from('x'), 'text/plain')
+  check('头像格式不支持被拒（415）', avatarBadExt.status === 415, `status=${avatarBadExt.status} ${avatarBadExt.body.reason ?? ''}`)
+
+  const patchMe = await api('PATCH', '/chat/me', l1.body.value, { avatar: avatarUrl, nickname: 'U1新昵称' })
+  check('改头像与昵称成功', patchMe.status === 200 && patchMe.body.avatar === avatarUrl && patchMe.body.nickname === 'U1新昵称', JSON.stringify(patchMe.body))
+
+  const patchEmpty = await api('PATCH', '/chat/me', l1.body.value, {})
+  check('昵称与头像都为空返回 400', patchEmpty.status === 400 && /至少提供一项/.test(patchEmpty.body.reason ?? ''), `status=${patchEmpty.status} ${patchEmpty.body.reason ?? ''}`)
+  const patchBlankNick = await api('PATCH', '/chat/me', l1.body.value, { nickname: '   ' })
+  check('昵称只有空白字符返回 400', patchBlankNick.status === 400, `status=${patchBlankNick.status} ${patchBlankNick.body.reason ?? ''}`)
+  const patchOutside = await api('PATCH', '/chat/me', l1.body.value, { avatar: 'http://evil.example.com/x.png' })
+  check('头像指向外站被拒（必须是站内路径）', patchOutside.status === 400 && /站内路径/.test(patchOutside.body.reason ?? ''), `status=${patchOutside.status} ${patchOutside.body.reason ?? ''}`)
+  const patchNoToken = await api('PATCH', '/chat/me', null, { nickname: 'x' })
+  check('未携带 token 改资料返回 401', patchNoToken.status === 401, `status=${patchNoToken.status}`)
+
+  // 核心用例：改头像后历史气泡的头像跟随（B3 决策：不再用发送时的快照）
+  const histAfter = await (await fetch(`${BASE}/chat/history?peer=${encodeURIComponent(m1.body.id)}`, { headers: { Authorization: `Bearer ${l2.body.value}` } })).json()
+  const msgAfter = histAfter.messages.filter((m) => m.senderUserId === m1.body.id).pop()
+  check('改头像后气泡的头像跟着变（跟随决策的核心用例）', msgAfter?.senderAvatar === avatarUrl, String(msgAfter?.senderAvatar))
+  check('昵称同样跟随（不出现新脸配旧名字）', msgAfter?.senderNickname === 'U1新昵称', String(msgAfter?.senderNickname))
+
+  // 会话列表与群成员列表本来就回查 users 表，这两条是回归守卫
+  const sessAfter = (await sessionsOf(l2.body.value)).find((s) => s.peer.userid === m1.body.id)
+  check('会话列表里的头像同步（回归守卫）', sessAfter?.peer.avatar === avatarUrl, String(sessAfter?.peer.avatar))
+  const grpForAvatar = await api('POST', '/chat/groups', l1.body.value, { name: '头像群', memberIds: [m3.body.id] })
+  const grpAvatarId = grpForAvatar.body.id
+  check('建头像群成功', grpForAvatar.status === 200, JSON.stringify(grpForAvatar.body))
+  const grpMembers = await (await fetch(`${BASE}/chat/groups/${grpAvatarId}/members`, { headers: { Authorization: `Bearer ${l1.body.value}` } })).json()
+  check('群成员列表的头像也回查 users 表（回归守卫）', (grpMembers ?? []).some((m) => m.userid === m1.body.id && m.avatar === avatarUrl), JSON.stringify(grpMembers?.map((m) => [m.userid, m.avatar])))
+
+  // 群头像：服务端是 B7 已实现的能力，这里守住权限
+  const patchGroupAvatar = await api('PATCH', `/chat/groups/${grpAvatarId}`, l1.body.value, { avatar: avatarUrl })
+  check('创建者可改群头像', patchGroupAvatar.status === 200 && patchGroupAvatar.body.avatar === avatarUrl, JSON.stringify(patchGroupAvatar.body))
+  const patchGroupByOther = await api('PATCH', `/chat/groups/${grpAvatarId}`, l3.body.value, { avatar: avatarUrl })
+  check('非创建者改群头像被拒（403）', patchGroupByOther.status === 403, `status=${patchGroupByOther.status} ${patchGroupByOther.body.reason ?? ''}`)
+
   u1.ws.close()
   u2.ws.close()
   await sleep(300)

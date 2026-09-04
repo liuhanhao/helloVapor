@@ -6,8 +6,9 @@ import { describeError } from '../api'
 import { writeClipboard } from '../clipboard'
 import { useAuthStore } from '../stores/auth'
 import { useChatStore } from '../stores/chat'
-import type { MessageItem, SessionSummary } from '../types'
+import type { MessageItem, MessageSearchItem, SessionSummary } from '../types'
 import EmojiPanel from '../components/EmojiPanel.vue'
+import Avatar from '../components/Avatar.vue'
 import CreateGroupDialog from '../components/CreateGroupDialog.vue'
 import GroupInfoDialog from '../components/GroupInfoDialog.vue'
 import ProfileCard from '../components/ProfileCard.vue'
@@ -55,7 +56,20 @@ let copyNoticeTimer: number | undefined
 const createGroupOpen = ref(false)
 const groupInfoOpen = ref(false)
 // 联系人资料卡（单聊顶栏点昵称打开；群成员的资料卡由群信息弹窗自己管）
-const contactProfile = ref<{ userid: string; nickname: string; username: string } | null>(null)
+const contactProfile = ref<{
+  userid: string
+  nickname: string
+  username: string
+  avatar: string
+} | null>(null)
+// 「我的资料」弹窗：改头像与改昵称（B3 02）
+const myProfile = ref(false)
+
+// 改完自己的头像/昵称后重拉会话列表：列表与气泡里的头像都来自服务端，
+// 而头像变更不实时广播（B3 的已知上限），所以本地要主动对齐一次
+async function onProfileUpdated() {
+  await chat.loadSessions()
+}
 
 const currentMessages = computed(() =>
   chat.currentRecipientId ? chat.conversations[chat.currentRecipientId] ?? [] : []
@@ -84,7 +98,8 @@ function openContactProfile() {
   contactProfile.value = {
     userid: s.peer.userid,
     nickname: s.peer.nickname || s.peer.username || s.peer.userid,
-    username: s.peer.username
+    username: s.peer.username,
+    avatar: s.peer.avatar
   }
 }
 
@@ -130,6 +145,23 @@ function isMedia(msg: MessageItem): boolean {
 // 缺 acked（还在发送中）或 id（服务端还没确认）时接口无从定位，不显示入口
 function canRecall(msg: MessageItem): boolean {
   return msg.fromSelf && msg.acked && !!msg.id && !msg.recalled
+}
+
+// 消息搜索（B8）：输入框本地托管，改动时防抖触发搜索；清空即恢复会话列表
+const searchInput = ref('')
+const searchActive = computed(() => searchInput.value.trim().length > 0)
+
+function onSearchInput() {
+  chat.searchSoon(searchInput.value)
+}
+
+// 点搜索结果跳到那个会话：收件主体 id 与形态接口都已返回，直接打开即可
+function openSearchResult(m: MessageSearchItem) {
+  chat.openConversation(
+    m.recipientId,
+    { nickname: m.recipientName },
+    m.recipientType === 'group' ? 'group' : 'direct'
+  )
 }
 
 async function recall(msg: MessageItem) {
@@ -358,14 +390,20 @@ onUnmounted(() => {
         {{ chat.connected ? '实时连接正常' : '连接断开' }}
       </span>
       <div class="me">
-        <span class="nickname">{{ auth.user?.nickname }}</span>
-        <div class="my-id-row">
-          <span class="my-id" title="选中可手动复制">我的 ID：{{ auth.user?.id }}</span>
-          <button class="copy-id" title="复制我的 userid 发给对方" @click="copyMyId">复制</button>
+        <!-- 点头像开「我的资料」：改头像与改昵称（B3 02） -->
+        <button class="me-avatar" title="我的资料：改头像与昵称" @click="myProfile = true">
+          <Avatar :src="auth.user?.avatar" :name="auth.user?.nickname" :size="36" />
+        </button>
+        <div class="me-text">
+          <span class="nickname">{{ auth.user?.nickname }}</span>
+          <div class="my-id-row">
+            <span class="my-id" title="选中可手动复制">我的 ID：{{ auth.user?.id }}</span>
+            <button class="copy-id" title="复制我的 userid 发给对方" @click="copyMyId">复制</button>
+          </div>
+          <span v-if="copyNotice" :class="['copy-notice', { failed: copyNoticeFailed }]">
+            {{ copyNotice }}
+          </span>
         </div>
-        <span v-if="copyNotice" :class="['copy-notice', { failed: copyNoticeFailed }]">
-          {{ copyNotice }}
-        </span>
       </div>
       <button class="logout" @click="handleLogout">退出</button>
     </header>
@@ -394,21 +432,53 @@ onUnmounted(() => {
         <p v-if="newChatError" class="new-chat-error">{{ newChatError }}</p>
         <p v-if="chat.groupsError" class="new-chat-error">{{ chat.groupsError }}</p>
 
-        <p v-if="chat.sessionsLoading" class="sidebar-tip">会话加载中…</p>
-        <p v-else-if="chat.sessionsError" class="sidebar-error">{{ chat.sessionsError }}</p>
-        <p v-else-if="chat.sessions.length === 0" class="sidebar-tip">
+        <!-- 消息搜索（B8）：有关键词时下面这一整块让位给搜索结果 -->
+        <input
+          v-model="searchInput"
+          class="search-messages"
+          placeholder="搜索聊天记录"
+          @input="onSearchInput"
+        />
+
+        <p v-if="chat.searching" class="sidebar-tip">搜索中…</p>
+        <p v-else-if="chat.searchError" class="sidebar-error">{{ chat.searchError }}</p>
+        <ul v-else-if="searchActive && chat.searchResults.length > 0" class="search-list">
+          <li v-for="m in chat.searchResults" :key="m.id" @click="openSearchResult(m)">
+            <Avatar
+              :src="m.recipientAvatar"
+              :name="m.recipientName"
+              :group="m.recipientType === 'group'"
+            />
+            <div class="session-info">
+              <div class="session-top">
+                <span class="name">{{ m.recipientName }}</span>
+                <span class="time">{{ formatTime(m.createdAt) }}</span>
+              </div>
+              <div class="session-bottom">
+                <span class="preview">
+                  {{ m.fromSelf ? '我：' : `${m.senderNickname}：` }}{{ m.content }}
+                </span>
+              </div>
+            </div>
+          </li>
+        </ul>
+        <p v-else-if="searchActive" class="sidebar-tip">没有找到相关消息</p>
+
+        <p v-if="!searchActive && chat.sessionsLoading" class="sidebar-tip">会话加载中…</p>
+        <p v-else-if="!searchActive && chat.sessionsError" class="sidebar-error">
+          {{ chat.sessionsError }}
+        </p>
+        <p v-else-if="!searchActive && chat.sessions.length === 0" class="sidebar-tip">
           还没有会话，输入对方账号或 userid 开始聊天
         </p>
-        <ul v-else class="session-list">
+        <ul v-else-if="!searchActive" class="session-list">
           <li
             v-for="s in chat.sessions"
             :key="s.peer.userid"
             :class="{ active: s.peer.userid === chat.currentRecipientId }"
             @click="openSession(s)"
           >
-            <div :class="['avatar', { 'group-avatar': s.kind === 'group' }]">
-              {{ sessionName(s).slice(0, 1).toUpperCase() }}
-            </div>
+            <Avatar :src="s.peer.avatar" :name="sessionName(s)" :group="s.kind === 'group'" />
             <div class="session-info">
               <div class="session-top">
                 <span class="name">
@@ -470,6 +540,13 @@ onUnmounted(() => {
             :key="msg.seq"
             :class="['message-row', msg.fromSelf ? 'self' : 'peer', msg.recalled ? 'recalled' : '']"
           >
+            <!-- 已撤回的消息是居中提示行，不带头像 -->
+            <Avatar
+              v-if="!msg.recalled"
+              :src="msg.senderAvatar"
+              :name="msg.senderNickname"
+              :size="32"
+            />
             <div class="message-col">
               <!-- 群聊里别人发的消息要标出是谁说的（单聊只有两个人，不需要） -->
               <span v-if="!msg.recalled && showSenderName(msg)" class="sender-name">{{ msg.senderNickname }}</span>
@@ -612,7 +689,20 @@ onUnmounted(() => {
       :userid="contactProfile.userid"
       :nickname="contactProfile.nickname"
       :username="contactProfile.username"
+      :avatar="contactProfile.avatar"
       @close="contactProfile = null"
+    />
+
+    <!-- 我的资料：可换头像与改昵称 -->
+    <ProfileCard
+      v-if="myProfile && auth.user"
+      editable
+      :userid="auth.user.id"
+      :nickname="auth.user.nickname"
+      :username="auth.user.account"
+      :avatar="auth.user.avatar"
+      @close="myProfile = false"
+      @updated="onProfileUpdated"
     />
 
     <!-- 原图查看浮层：点击任意处关闭 -->
@@ -659,9 +749,25 @@ onUnmounted(() => {
 .me {
   margin-left: auto;
   display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* 昵称、我的 ID、复制提示仍按原来那样右对齐竖排 */
+.me-text {
+  display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: 2px;
+}
+
+.me-avatar {
+  border: none;
+  background: none;
+  padding: 0;
+  line-height: 0;
+  border-radius: 50%;
+  cursor: pointer;
 }
 
 .nickname {
@@ -820,23 +926,7 @@ onUnmounted(() => {
   background: #e8f3ff;
 }
 
-.avatar {
-  width: 40px;
-  height: 40px;
-  flex-shrink: 0;
-  border-radius: 50%;
-  background: #165dff;
-  color: #fff;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* 群会话头像换色：会话列表里一眼分清单聊与群聊 */
-.group-avatar {
-  background: #722ed1;
-}
+/* 头像样式统一在 components/Avatar.vue 里（有图显图、无图回退首字母） */
 
 /* 群成员数：跟在群名后面 */
 .member-count {
@@ -1004,8 +1094,10 @@ onUnmounted(() => {
   display: flex;
 }
 
+/* 自己的消息：头像在右。用 row-reverse 而不是 justify-content，
+   因为头像是第一个子元素，翻转后它自然落到最右侧，撤回按钮则到最左 */
 .message-row.self {
-  justify-content: flex-end;
+  flex-direction: row-reverse;
 }
 
 /* 气泡与发送者昵称同属一列；宽度上限从气泡移到这一列，气泡仍按内容收缩 */
@@ -1043,6 +1135,41 @@ onUnmounted(() => {
   background: #f2f3f5;
   border-radius: 4px;
   padding: 4px 10px;
+}
+
+/* 消息搜索：输入框与结果列表，结果条目沿用会话条目的观感 */
+.search-messages {
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+}
+
+.search-messages:focus {
+  border-color: #165dff;
+}
+
+.search-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.search-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.search-list li:hover {
+  background: #f7f8fa;
 }
 
 /* 撤回入口：悬停才出现，避免每行都挂一个按钮抢视觉重心 */

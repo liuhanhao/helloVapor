@@ -85,6 +85,8 @@ struct MessageSearchItemDTO: Content {
     var recipientId: String
     // 展示用：群名或对方昵称
     var recipientName: String
+    // 展示用：群头像或对方头像（B3 03——搜索结果里的头像要和会话列表一致）
+    var recipientAvatar: String
 }
 
 // 搜索结果（messages 按时间倒序）
@@ -298,10 +300,16 @@ enum ChatHistoryController {
         let hasMore = fetched.count > limit
         let page = Array(fetched.prefix(limit))
 
+        // 发送者的头像与昵称按 users 表回查（B3 决策：展示跟随当前值，而不用发送时的快照）。
+        // 查不到注册记录时回退消息里的快照——这正是快照存在的意义，不能让头像变空
+        let senderIds = Array(Set(page.map { $0.mine.userId }))
+        let sendersById = try await usersById(on: req.db, ids: senderIds)
+
         // 对外按时间正序返回
         return HistoryResponseDTO(
             messages: page.reversed().map { message in
                 let recalled = message.recalledAt != nil
+                let sender = sendersById[message.mine.userId]
                 return HistoryMessageDTO(
                     id: message.id?.uuidString,
                     // 已撤回的不再返回原文，换成按查看者生成的提示文案
@@ -310,8 +318,9 @@ enum ChatHistoryController {
                     fromSelf: message.mine.userId == myId,
                     createdAt: message.createdAt?.timeIntervalSince1970 ?? 0,
                     senderUserId: message.mine.userId,
-                    senderNickname: message.mine.nickname,
-                    senderAvatar: message.mine.avatar,
+                    // 昵称与头像一起跟随，只换其中一个会出现「新脸配旧名字」
+                    senderNickname: sender?.nickname ?? message.mine.nickname,
+                    senderAvatar: sender?.avatar ?? message.mine.avatar,
                     recalled: recalled
                 )
             },
@@ -406,15 +415,20 @@ enum ChatHistoryController {
         let isGroup = item.message.toType == RecipientType.group.rawValue
         let sentByMe = item.message.mine.userId == myId
         let name: String
+        var avatar: String
         if isGroup {
           name = groupsByGroupId[item.recipientId]?.name ?? item.recipientId
+          avatar = groupsByGroupId[item.recipientId]?.avatar ?? "default"
         } else if let user = usersByPeerId[item.recipientId] {
           name = user.nickname
+          avatar = user.avatar
         } else if sentByMe {
           // 我发出去的：对方身份在 to 里（无注册记录时的回退）
           name = item.message.to.nickname.isEmpty ? item.message.to.username : item.message.to.nickname
+          avatar = item.message.to.avatar
         } else {
           name = item.message.mine.nickname
+          avatar = item.message.mine.avatar
         }
         return MessageSearchItemDTO(
           id: item.message.id?.uuidString ?? "",
@@ -425,7 +439,8 @@ enum ChatHistoryController {
           senderNickname: item.message.mine.nickname,
           recipientType: item.message.toType,
           recipientId: item.recipientId,
-          recipientName: name
+          recipientName: name,
+          recipientAvatar: avatar
         )
       },
       hasMore: hasMore

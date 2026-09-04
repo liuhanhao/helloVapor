@@ -1,6 +1,6 @@
 # 消息搜索
 
-Status: ready-for-agent（实施 tickets 见 `issues/`，从 01 开始按阻塞边顺序认领）
+Status: ready-for-human（2026-09-01：`01` 已 resolved，`02` 实现与自动化验证均已完成。服务端联调 **214 项**全绿，前端单测 16 项通过，构建通过。**仅剩浏览器冒烟**——Chrome 的 CDP 调试端点失效，且重启浏览器会关掉正在看的标签页，故留给人工，步骤见 `issues/02` 的 Comments）
 
 ## 问题陈述（Problem Statement）
 

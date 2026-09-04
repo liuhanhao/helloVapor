@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   markRead: vi.fn(),
   recallMessage: vi.fn(),
   searchUsers: vi.fn(),
+  searchMessages: vi.fn(),
   createGroup: vi.fn(),
   updateGroup: vi.fn(),
   addGroupMember: vi.fn(),
@@ -237,6 +238,7 @@ describe('群改名与拉人', () => {
     mocks.updateGroup.mockResolvedValue({
       id: 'g1',
       name: '新群名',
+      avatar: 'default',
       memberCount: 2,
       ownerId: 'me'
     })
@@ -256,6 +258,7 @@ describe('群改名与拉人', () => {
     mocks.addGroupMember.mockResolvedValue({
       id: 'g1',
       name: '群',
+      avatar: 'default',
       memberCount: 5,
       ownerId: 'me'
     })
@@ -263,6 +266,22 @@ describe('群改名与拉人', () => {
 
     expect(chat.groups['g1'].memberCount).toBe(5)
     expect(chat.sessions[0].memberCount).toBe(5)
+  })
+
+  it('换群头像后群表同步（与改名走同一条 PATCH）', async () => {
+    const chat = useChatStore()
+    mocks.updateGroup.mockResolvedValue({
+      id: 'g1',
+      name: '群',
+      avatar: '/uploads/g.png',
+      memberCount: 2,
+      ownerId: 'me'
+    })
+
+    await chat.changeGroupAvatar('g1', '/uploads/g.png')
+
+    expect(chat.groups['g1'].avatar).toBe('/uploads/g.png')
+    expect(mocks.updateGroup).toHaveBeenCalledWith('tok', 'g1', { avatar: '/uploads/g.png' })
   })
 
   it('退群后该群的本地状态全部清除', async () => {
@@ -338,6 +357,64 @@ describe('消息撤回', () => {
     })
 
     expect(chat.sessions[0].lastMessage.content).toBe('P1撤回了一条消息')
+  })
+})
+
+describe('消息搜索', () => {
+  // 一条命中结果：单聊里对方发来的
+  const hit = {
+    id: 'm1',
+    content: '密码是多少',
+    msgType: 'text',
+    fromSelf: false,
+    createdAt: 1700000000,
+    senderNickname: 'P1',
+    recipientType: 'user' as const,
+    recipientId: OTHER,
+    recipientName: 'P1'
+  }
+
+  it('结果进 searchResults，不污染会话列表', async () => {
+    const chat = useChatStore()
+    mocks.fetchSessions.mockResolvedValue([directSession(OTHER, 0)])
+    await chat.loadSessions()
+    mocks.searchMessages.mockResolvedValue({ hasMore: false, messages: [hit] })
+
+    await chat.searchMessages('密码')
+
+    expect(chat.searchResults).toHaveLength(1)
+    expect(chat.searchResults[0].content).toBe('密码是多少')
+    // 搜索结果是「消息」列表：混进 sessions 会让未读与置顶逻辑长出各种特例
+    expect(chat.sessions).toHaveLength(1)
+    expect(chat.sessions[0].peer.userid).toBe(OTHER)
+  })
+
+  it('清空关键词即清空结果（不留上一次的）', async () => {
+    const chat = useChatStore()
+    mocks.searchMessages.mockResolvedValue({ hasMore: false, messages: [hit] })
+    await chat.searchMessages('密码')
+    expect(chat.searchResults).toHaveLength(1)
+
+    await chat.searchMessages('')
+
+    expect(chat.searchResults).toEqual([])
+    expect(chat.searchKeyword).toBe('')
+    // 空关键词不发请求
+    expect(mocks.searchMessages).toHaveBeenCalledTimes(1)
+  })
+
+  it('输入防抖：连打只发一次请求', async () => {
+    vi.useFakeTimers()
+    const chat = useChatStore()
+    mocks.searchMessages.mockResolvedValue({ hasMore: false, messages: [] })
+
+    chat.searchSoon('密')
+    chat.searchSoon('密码')
+    chat.searchSoon('密码是')
+    await vi.advanceTimersByTimeAsync(400)
+
+    expect(mocks.searchMessages).toHaveBeenCalledTimes(1)
+    expect(mocks.searchMessages).toHaveBeenCalledWith('tok', '密码是', { limit: 30 })
   })
 })
 

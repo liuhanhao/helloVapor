@@ -159,7 +159,8 @@ export function createGroup(
 export function updateGroup(
   token: string,
   groupId: string,
-  patch: { name: string }
+  // 改名与换头像：服务端两件事都收，至少给一个
+  patch: { name?: string; avatar?: string }
 ): Promise<GroupSummary> {
   return request<GroupSummary>(`/chat/groups/${encodeURIComponent(groupId)}`, {
     method: 'PATCH',
@@ -222,6 +223,18 @@ export async function searchMessages(
   }
 }
 
+// 改自己的昵称与头像（B3 02）：两者至少给一个，返回更新后的身份
+export function updateMe(
+  token: string,
+  patch: { nickname?: string; avatar?: string }
+): Promise<UserInfo> {
+  return request<UserInfo>('/chat/me', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify(patch)
+  })
+}
+
 // 撤回消息（B2）：只有发送者可撤回，服务端会实时通知对端。
 // 撤回是软删——消息行还在，但接口不再返回原文，改以提示文案下发
 export function recallMessage(
@@ -238,7 +251,7 @@ export function recallMessage(
 // 注意不手动设置 Content-Type，让浏览器自动携带 multipart 边界
 export function uploadMedia(
   token: string,
-  msgType: 'image' | 'audio' | 'video',
+  msgType: 'image' | 'audio' | 'video' | 'avatar',
   file: File
 ): Promise<{ url: string }> {
   const form = new FormData()

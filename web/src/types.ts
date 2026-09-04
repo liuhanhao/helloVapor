@@ -19,6 +19,9 @@ export interface MessageItem {
   fromSelf: boolean
   // 发送者昵称：群聊气泡靠它显示是谁说的（单聊与自己的消息不显示）
   senderNickname?: string
+  // 发送者头像：历史消息取回查后的 senderAvatar（跟随当前值），
+  // 实时收到的消息取帧里的快照——此时服务端还没回查
+  senderAvatar?: string
   content: string
   // 消息类型；服务端缺省按 text 处理
   msgType: string
@@ -76,6 +79,8 @@ export interface HistoryMessage {
   createdAt: number
   // 发送者昵称：群聊气泡靠它显示是谁说的（单聊也一并返回，前端无需分支取数）
   senderNickname: string
+  // 发送者头像：已按发送者回查 users 表（跟随当前值，不是发送时的快照）
+  senderAvatar: string
   // 是否已被撤回：content 此时是提示文案，不含原文
   recalled: boolean
 }
@@ -84,6 +89,8 @@ export interface HistoryMessage {
 export interface GroupSummary {
   id: string
   name: string
+  // 群头像 URL；'default' 表示还没设置，由 Avatar 回退群名首字母
+  avatar: string
   memberCount: number
   // 创建者 userid：界面靠它决定「改群名」入口是否可见（服务端已定仅创建者可改群信息）
   ownerId: string
@@ -94,6 +101,8 @@ export interface GroupMember {
   userid: string
   nickname: string
   username: string
+  // 头像：服务端按 userId 回查 users 表，跟随当前值
+  avatar: string
 }
 
 // 历史消息分页结果（messages 按时间正序）
@@ -116,6 +125,8 @@ export interface MessageSearchItem {
   recipientId: string
   // 展示用：群名或对方昵称
   recipientName: string
+  // 展示用：群头像或对方头像，与会话列表保持一致
+  recipientAvatar: string
 }
 
 // 搜索结果（messages 按时间倒序）。这是「消息」列表，不是会话列表
