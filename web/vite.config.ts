@@ -20,7 +20,8 @@ export default defineConfig({
     proxy: {
       '^/chat/': {
         target: process.env.VAPOR_URL || 'http://127.0.0.1:8080',
-        changeOrigin: true
+        changeOrigin: true,
+        ws: true
       },
       // 上传的媒体文件（服务端 FileMiddleware 托管 Public 目录，/uploads/<文件名>）
       '^/uploads/': {
