@@ -1,4 +1,4 @@
-// swift-tools-version:5.6
+// swift-tools-version:6.4
 import PackageDescription
 
 let package = Package(
@@ -34,5 +34,8 @@ let package = Package(
             .target(name: "App"),
             .product(name: "XCTVapor", package: "vapor"),
         ])
-    ]
+    ],
+    // 编译器/工具链为 Swift 6.4，但 Vapor 4 / Fluent 的模型宏与静态 keypath
+    // 尚未适配 Swift 6 严格并发，显式保持 Swift 5 语言模式以免编译失败。
+    swiftLanguageModes: [.v5]
 )
